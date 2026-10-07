@@ -42,6 +42,7 @@
     background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #4c1d95 100%);
   }
   .container { max-width: 1400px; margin: 0 auto; }
+
   .header {
     display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
@@ -218,33 +219,6 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* Format selector */
-  .format-toggle {
-    display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
-    background: var(--card-bg-2);
-    padding: 4px;
-    border-radius: 10px;
-    border: 2px solid var(--border);
-  }
-  .format-toggle button {
-    flex: 1; padding: 10px 16px;
-    background: transparent;
-    border: none;
-    border-radius: 7px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    color: var(--text-muted);
-    transition: all 0.2s;
-    font-family: inherit;
-    min-width: 120px;
-  }
-  .format-toggle button.active {
-    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-    color: white;
-    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
-  }
-
   .stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -346,15 +320,38 @@
     font-family: monospace;
     margin-left: 4px;
   }
-  .badge.json {
-    background: rgba(245, 158, 11, 0.15);
-    color: #d97706;
+  .badge.json { background: rgba(245, 158, 11, 0.15); color: #d97706; }
+  .badge.active { background: rgba(16, 185, 129, 0.15); color: #059669; }
+  .badge.done { background: rgba(59, 130, 246, 0.15); color: #2563eb; }
+
+  /* Format toggle */
+  .format-toggle {
+    display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
+    background: var(--card-bg-2);
+    padding: 4px;
+    border-radius: 10px;
+    border: 2px solid var(--border);
+  }
+  .format-toggle button {
+    flex: 1; padding: 10px 16px;
+    background: transparent;
+    border: none; border-radius: 7px;
+    font-size: 13px; font-weight: 600;
+    cursor: pointer; color: var(--text-muted);
+    transition: all 0.2s; font-family: inherit;
+    min-width: 120px;
+  }
+  .format-toggle button.active {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
   }
 
+  /* Table */
   .table-wrap {
     overflow: auto; border-radius: 12px;
     border: 1px solid var(--border);
-    max-height: 600px;
+    max-height: 700px;
     background: var(--card-bg);
   }
   table {
@@ -382,8 +379,7 @@
   td {
     padding: 12px 16px;
     border-bottom: 1px solid var(--border);
-    max-width: 400px; overflow: hidden;
-    text-overflow: ellipsis; white-space: nowrap;
+    max-width: 400px;
     color: var(--text);
     vertical-align: top;
   }
@@ -397,12 +393,51 @@
     text-align: center; width: 60px;
   }
 
-  /* JSON cell */
-  .json-cell {
+  /* Cell value types */
+  .cell-string {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .cell-text {
+    white-space: pre-wrap; word-break: break-word;
+    max-width: 400px; font-size: 12px;
+  }
+  .cell-number {
+    font-family: monospace; font-weight: 600;
+    color: #dc2626;
+  }
+  [data-theme="dark"] .cell-number { color: #f87171; }
+  .cell-boolean {
+    font-family: monospace;
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .cell-bool-true { background: rgba(16, 185, 129, 0.15); color: #059669; }
+  .cell-bool-false { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
+  .cell-null { color: var(--text-muted); font-style: italic; }
+
+  /* Image cell */
+  .image-cell {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .image-thumb {
+    width: 50px; height: 50px;
+    object-fit: cover;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    transition: transform 0.2s;
+  }
+  .image-thumb:hover { transform: scale(1.1); }
+
+  /* Object/Array cells */
+  .obj-cell {
     display: flex; align-items: center; gap: 8px;
     max-width: 100%;
   }
-  .json-preview {
+  .obj-preview {
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -411,7 +446,7 @@
     font-size: 12px;
     color: var(--text-muted);
   }
-  .json-btn {
+  .obj-btn {
     background: linear-gradient(135deg, #f59e0b, #d97706);
     color: white;
     border: none;
@@ -424,12 +459,45 @@
     transition: all 0.2s;
     flex-shrink: 0;
   }
-  .json-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3); }
+  .obj-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3); }
+  .obj-btn.array {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  }
+  .obj-btn.array:hover { box-shadow: 0 4px 8px rgba(139, 92, 246, 0.3); }
+
+  /* Nested table (for works) */
+  .nested-table-wrap {
+    margin-top: 20px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .nested-table-header {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(124, 58, 237, 0.05));
+    padding: 12px 16px;
+    border-bottom: 2px solid var(--border);
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .nested-table-wrap table { font-size: 12px; }
+  .nested-table-wrap th {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    padding: 10px 12px;
+    font-size: 11px;
+  }
+  .nested-table-wrap td {
+    padding: 10px 12px;
+    max-width: 300px;
+  }
 
   /* Modal */
   .modal-overlay {
     position: fixed; inset: 0;
-    background: rgba(0,0,0,0.6);
+    background: rgba(0,0,0,0.7);
     backdrop-filter: blur(4px);
     display: none;
     align-items: center;
@@ -443,16 +511,20 @@
     background: var(--card-bg);
     border-radius: 16px;
     box-shadow: var(--shadow-lg);
-    max-width: 800px;
+    max-width: 900px;
     width: 100%;
-    max-height: 85vh;
+    max-height: 90vh;
     display: flex;
     flex-direction: column;
     animation: slideUp 0.3s ease-out;
     border: 1px solid var(--border);
   }
+  .modal.modal-image {
+    max-width: 90vw;
+    max-height: 90vh;
+  }
   .modal-header {
-    padding: 20px 24px;
+    padding: 18px 24px;
     border-bottom: 2px solid var(--border);
     display: flex;
     justify-content: space-between;
@@ -460,7 +532,7 @@
     gap: 12px;
   }
   .modal-title {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 700;
     color: var(--text);
     display: flex;
@@ -495,7 +567,7 @@
   }
   .modal-body pre {
     font-family: 'SF Mono', Monaco, Consolas, monospace;
-    font-size: 13px;
+    font-size: 12px;
     line-height: 1.6;
     color: var(--text);
     white-space: pre-wrap;
@@ -505,6 +577,13 @@
     border-radius: 10px;
     border: 1px solid var(--border);
   }
+  .modal-body img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+    border-radius: 10px;
+  }
   .modal-footer {
     padding: 16px 24px;
     border-top: 1px solid var(--border);
@@ -513,7 +592,7 @@
     justify-content: flex-end;
   }
 
-  /* Nested JSON tree */
+  /* JSON Tree */
   .json-tree {
     font-family: 'SF Mono', Monaco, Consolas, monospace;
     font-size: 13px;
@@ -531,6 +610,7 @@
   .json-tree .null { color: #94a3b8; font-style: italic; }
   .json-tree ul { list-style: none; padding-left: 20px; border-left: 1px dashed var(--border); margin: 4px 0; }
   .json-tree li { padding: 2px 0; }
+  .json-tree .truncated { color: var(--text-muted); font-style: italic; }
 
   .empty-state {
     text-align: center; padding: 60px 20px;
@@ -581,6 +661,17 @@
     font-size: 12px; margin-top: 24px; padding: 16px;
   }
 
+  /* Single-object banner */
+  .single-object-banner {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(124, 58, 237, 0.05));
+    border-left: 4px solid #8b5cf6;
+    padding: 14px 18px;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: var(--text);
+  }
+
   @media (max-width: 640px) {
     body { padding: 14px 10px; }
     .card { padding: 20px 16px; border-radius: 16px; }
@@ -604,7 +695,7 @@
       <div class="brand-icon">🔐</div>
       <div class="brand-text">
         <h1>SOV Data Viewer</h1>
-        <p>Decrypt • CSV/JSON • Filter by Date/Month/Year</p>
+        <p>Decrypt • View (Table/JSON) • Filter & Search</p>
       </div>
     </div>
     <button class="theme-btn" id="themeBtn" title="Toggle dark mode">🌙</button>
@@ -660,15 +751,13 @@
       <div class="step-num">3</div>
       <div>
         <h2>Decrypted Data</h2>
-        <p id="dataSubtitle">Filter & search பண்ணி data பாருங்க</p>
+        <p id="dataSubtitle">Table-ல அல்லது JSON-ஆ பாருங்க</p>
       </div>
     </div>
 
-    <!-- Format info banner -->
-    <div id="formatBanner" style="margin-bottom:16px;padding:12px 16px;border-radius:10px;background:linear-gradient(135deg,rgba(99,102,241,0.1),rgba(118,75,162,0.05));border-left:4px solid var(--primary);font-size:13px;color:var(--text);"></div>
+    <div id="formatBanner"></div>
 
-    <!-- Format toggle for JSON entity view -->
-    <div class="format-toggle" id="formatToggle" style="display:none;">
+    <div class="format-toggle" id="formatToggle">
       <button data-view="table" class="active">📋 Table View</button>
       <button data-view="raw">📄 Raw JSON</button>
     </div>
@@ -758,15 +847,18 @@
 
     <div id="cryptoMeta" style="margin-bottom:12px;font-size:12px;color:var(--text-muted);"></div>
 
-    <div class="table-wrap" id="tableWrap">
-      <table id="dataTable">
-        <thead></thead>
-        <tbody></tbody>
-      </table>
+    <div id="tableWrap">
+      <div class="table-wrap">
+        <table id="dataTable">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div id="nestedTablesWrap"></div>
     </div>
 
     <div id="rawJsonWrap" style="display:none;">
-      <pre id="rawJsonContent" style="font-family:monospace;font-size:12px;line-height:1.6;background:var(--card-bg-2);padding:16px;border-radius:12px;border:1px solid var(--border);max-height:600px;overflow:auto;white-space:pre-wrap;word-break:break-word;"></pre>
+      <pre id="rawJsonContent" style="font-family:monospace;font-size:12px;line-height:1.6;background:var(--card-bg-2);padding:16px;border-radius:12px;border:1px solid var(--border);max-height:700px;overflow:auto;white-space:pre-wrap;word-break:break-word;"></pre>
     </div>
   </div>
 
@@ -781,6 +873,7 @@
   <div class="footer">🔒 AES-256-GCM • SHA-256 KDF • All processing in browser</div>
 </div>
 
+<!-- Modal for JSON view -->
 <div class="modal-overlay" id="jsonModal">
   <div class="modal">
     <div class="modal-header">
@@ -795,6 +888,19 @@
   </div>
 </div>
 
+<!-- Modal for Image view -->
+<div class="modal-overlay" id="imageModal">
+  <div class="modal modal-image">
+    <div class="modal-header">
+      <div class="modal-title">🖼️ <span id="imageModalTitle">Image</span></div>
+      <button class="modal-close" id="imageModalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <img id="imageModalImg" alt="Preview">
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -802,16 +908,18 @@
 let parsedFile = null;
 let headers = [];
 let dataRows = [];
+let rawObject = null;         // The full decrypted JSON object (if JSON)
+let nestedArrayColumns = {};  // { colIndex: arrayData } — for works array
 let dateColumnIndex = -1;
-let jsonColumns = new Set();
+let objectColumns = new Set();
+let imageColumns = new Set();
 let decryptTimeMs = 0;
 let fileInfo = null;
 let sortColumn = -1;
 let sortDirection = 'asc';
 let currentModalData = null;
 let rawDecryptedText = '';
-let detectedFormat = '';       // 'CSV' or 'JSON'
-let currentView = 'table';     // 'table' or 'raw'
+let detectedFormat = '';
 
 const $ = id => document.getElementById(id);
 
@@ -875,11 +983,9 @@ async function decryptSOVCSV1(text, password) {
   const iv = b64ToBytes(parts[1]);
   const authTag = b64ToBytes(parts[2]);
   const ciphertext = b64ToBytes(parts[3]);
-
   const combined = new Uint8Array(ciphertext.length + authTag.length);
   combined.set(ciphertext, 0);
   combined.set(authTag, ciphertext.length);
-
   const key = await deriveKey(password);
   const plainBuf = await crypto.subtle.decrypt(
     { name: 'AES-GCM', iv, tagLength: 128 },
@@ -911,156 +1017,27 @@ function parseCSV(text) {
   return rows.filter(r => r.some(c => c.trim() !== ''));
 }
 
-// ===================== JSON → Flat Table =====================
-// Convert nested JSON object (like {version, updatedAt, entities:{key:[records]}})
-// into flat rows/columns for table display
-function flattenJSONToTable(obj) {
-  // Strategy 1: If top-level has 'entities' object with arrays
-  if (obj && typeof obj === 'object' && obj.entities && typeof obj.entities === 'object') {
-    return flattenEntities(obj.entities, obj);
-  }
-
-  // Strategy 2: If it's an array of objects
-  if (Array.isArray(obj)) {
-    return flattenArray(obj);
-  }
-
-  // Strategy 3: Single object — convert to key-value table
-  if (obj && typeof obj === 'object') {
-    return flattenObject(obj);
-  }
-
-  // Strategy 4: Primitive
-  return {
-    headers: ['value'],
-    rows: [[String(obj)]]
-  };
-}
-
-// Flatten {entities: {key1: [...], key2: [...]}} into one big table
-function flattenEntities(entities, meta) {
-  // Collect all unique keys from all records across all entities
-  const allKeys = new Set(['_entity']);
-  const allRows = [];
-
-  for (const entityName of Object.keys(entities)) {
-    const records = entities[entityName];
-    if (!Array.isArray(records)) continue;
-
-    for (const record of records) {
-      if (!record || typeof record !== 'object') continue;
-      const flat = { _entity: entityName };
-      flattenObjectInto(record, flat, '');
-      Object.keys(flat).forEach(k => allKeys.add(k));
-      allRows.push(flat);
-    }
-  }
-
-  const headers = [...allKeys];
-  const rows = allRows.map(row => headers.map(h => {
-    const v = row[h];
-    if (v === undefined || v === null) return '';
-    if (typeof v === 'object') return JSON.stringify(v);
-    return String(v);
-  }));
-
-  return { headers, rows, meta };
-}
-
-// Flatten array of objects
-function flattenArray(arr) {
-  const allKeys = new Set();
-  const flatRows = [];
-  for (const item of arr) {
-    if (item && typeof item === 'object' && !Array.isArray(item)) {
-      const flat = {};
-      flattenObjectInto(item, flat, '');
-      flatRows.push(flat);
-      Object.keys(flat).forEach(k => allKeys.add(k));
-    } else {
-      const flat = { value: typeof item === 'object' ? JSON.stringify(item) : String(item) };
-      flatRows.push(flat);
-      allKeys.add('value');
-    }
-  }
-  const headers = [...allKeys];
-  const rows = flatRows.map(row => headers.map(h => {
-    const v = row[h];
-    if (v === undefined || v === null) return '';
-    if (typeof v === 'object') return JSON.stringify(v);
-    return String(v);
-  }));
-  return { headers, rows };
-}
-
-// Flatten single object
-function flattenObject(obj) {
-  const flat = {};
-  flattenObjectInto(obj, flat, '');
-  const headers = Object.keys(flat);
-  const row = headers.map(h => {
-    const v = flat[h];
-    if (v === undefined || v === null) return '';
-    if (typeof v === 'object') return JSON.stringify(v);
-    return String(v);
-  });
-  return { headers, rows: [row] };
-}
-
-// Recursive flattener: {a:{b:1}} → {'a.b': 1}
-function flattenObjectInto(obj, out, prefix) {
-  if (obj === null || obj === undefined) {
-    out[prefix] = '';
-    return;
-  }
-  if (typeof obj !== 'object') {
-    out[prefix] = obj;
-    return;
-  }
-  if (Array.isArray(obj)) {
-    // Keep arrays as JSON strings (don't flatten deeply, too many columns)
-    out[prefix] = JSON.stringify(obj);
-    return;
-  }
-  for (const key of Object.keys(obj)) {
-    const value = obj[key];
-    const newKey = prefix ? `${prefix}.${key}` : key;
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      flattenObjectInto(value, out, newKey);
-    } else if (Array.isArray(value)) {
-      out[newKey] = JSON.stringify(value);
-    } else {
-      out[newKey] = value === null || value === undefined ? '' : value;
-    }
-  }
-}
-
 // ===================== Date helpers =====================
 function parseDate(value) {
   if (!value) return null;
   const s = String(value).trim();
   if (!s) return null;
-
   let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
-
   m = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
   if (m) {
     const d = +m[1], mo = +m[2], y = +m[3];
     if (mo > 12 && d <= 12) return new Date(y, d - 1, mo);
     return new Date(y, mo - 1, d);
   }
-
   m = s.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})/);
   if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
-
   m = s.match(/^(\d{1,2})[-\s]([A-Za-z]{3,})[-\s](\d{4})/);
   if (m) {
     const months = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
     const mo = months[m[2].toLowerCase().slice(0,3)];
     if (mo !== undefined) return new Date(+m[3], mo, +m[1]);
   }
-
   const d = new Date(s);
   return isNaN(d.getTime()) ? null : d;
 }
@@ -1081,11 +1058,9 @@ function getFY(d) {
 
 function detectDateColumn(headerRow) {
   const patterns = [
-    /^date$/i, /^dt$/i, /^day$/i,
-    /date$/i, /_date$/i, /date_/i,
+    /^date$/i, /^dt$/i, /^day$/i, /date$/i, /_date$/i, /date_/i,
     /^(created|updated|entry|work|attendance|request|start|end|ot|power|payment|advance|po|invoice|dc)_?at$/i,
-    /_at$/i,
-    /^timestamp$/i
+    /_at$/i, /^timestamp$/i
   ];
   for (let i = 0; i < headerRow.length; i++) {
     const h = String(headerRow[i]).trim();
@@ -1096,104 +1071,217 @@ function detectDateColumn(headerRow) {
 
 function getRowDate(row) {
   if (dateColumnIndex === -1) return null;
-  return parseDate(row[dateColumnIndex]);
+  const v = row[dateColumnIndex];
+  // If cell is object/array, try common date fields
+  if (v && typeof v === 'object') {
+    for (const k of ['date', 'createdAt', 'updatedAt']) {
+      if (v[k]) return parseDate(v[k]);
+    }
+    return null;
+  }
+  return parseDate(v);
 }
 
-// ===================== JSON Detection =====================
-function looksLikeJSON(value) {
-  if (!value) return false;
+// ===================== Value Helpers =====================
+function isJSONLike(value) {
+  if (value == null) return false;
   const s = String(value).trim();
   if (s.length < 2) return false;
-  if (!((s.startsWith('{') && s.endsWith('}')) || (s.startsWith('[') && s.endsWith(']')))) return false;
-  try { JSON.parse(s); return true; } catch { return false; }
+  return (s.startsWith('{') && s.endsWith('}')) || (s.startsWith('[') && s.endsWith(']'));
 }
 
-function detectJSONColumns(headerRow, dataRows) {
-  const jsonCols = new Set();
-  const sample = dataRows.slice(0, Math.min(50, dataRows.length));
-  for (let i = 0; i < headerRow.length; i++) {
-    let jsonCount = 0, nonEmpty = 0;
+function isDataURL(value) {
+  return typeof value === 'string' && /^data:image\//i.test(value);
+}
+
+function isLongText(value) {
+  return typeof value === 'string' && value.length > 80;
+}
+
+function shortValuePreview(value) {
+  if (value === null || value === undefined) return '';
+  if (Array.isArray(value)) return `[${value.length} items]`;
+  if (typeof value === 'object') return `{${Object.keys(value).length} fields}`;
+  const s = String(value);
+  if (isDataURL(s)) return `🖼️ Image (${formatBytes(s.length)})`;
+  return s.length > 60 ? s.slice(0, 60) + '...' : s;
+}
+
+// Flatten an object into "prefix.key" — one level only for nested arrays/objects kept as JSON
+function flattenObject(obj, prefix = '') {
+  const out = {};
+  if (!obj || typeof obj !== 'object') return out;
+  for (const key of Object.keys(obj)) {
+    const value = obj[key];
+    const newKey = prefix ? `${prefix}.${key}` : key;
+    if (Array.isArray(value)) {
+      out[newKey] = value; // keep as array for nested table
+    } else if (value && typeof value === 'object') {
+      // Only recurse ONE level into nested plain objects (like dailyCompleted)
+      Object.assign(out, flattenObject(value, newKey));
+    } else {
+      out[newKey] = value;
+    }
+  }
+  return out;
+}
+
+// ===================== JSON → Table =====================
+function jsonToTableRows(jsonObj) {
+  // Case 1: Single object → 1 row
+  if (jsonObj && typeof jsonObj === 'object' && !Array.isArray(jsonObj)) {
+    const flattened = flattenObject(jsonObj);
+    const headers = Object.keys(flattened);
+    const row = headers.map(h => flattened[h]);
+    return { headers, rows: [row], isSingle: true, source: jsonObj };
+  }
+  // Case 2: Array of objects
+  if (Array.isArray(jsonObj)) {
+    if (jsonObj.length === 0) {
+      return { headers: ['value'], rows: [], isSingle: false, source: jsonObj };
+    }
+    const allFlat = jsonObj.map(item => item && typeof item === 'object' ? flattenObject(item) : { value: item });
+    const allKeys = new Set();
+    allFlat.forEach(f => Object.keys(f).forEach(k => allKeys.add(k)));
+    const headers = [...allKeys];
+    const rows = allFlat.map(f => headers.map(h => f[h] !== undefined ? f[h] : ''));
+    return { headers, rows, isSingle: false, source: jsonObj };
+  }
+  // Case 3: Primitive
+  return { headers: ['value'], rows: [[String(jsonObj)]], isSingle: false, source: jsonObj };
+}
+
+// Detect object/array/image columns from data
+function detectSpecialColumns(headers, rows) {
+  const objCols = new Set();
+  const imgCols = new Set();
+  const sample = rows.slice(0, Math.min(10, rows.length));
+  for (let i = 0; i < headers.length; i++) {
     for (const row of sample) {
       const v = row[i];
-      if (v && String(v).trim()) {
-        nonEmpty++;
-        if (looksLikeJSON(v)) jsonCount++;
-      }
+      if (typeof v === 'string' && isDataURL(v)) { imgCols.add(i); break; }
+      if (Array.isArray(v)) { objCols.add(i); break; }
+      if (v && typeof v === 'object') { objCols.add(i); break; }
     }
-    if (nonEmpty > 0 && jsonCount / nonEmpty >= 0.8) jsonCols.add(i);
   }
-  return jsonCols;
+  return { objCols, imgCols };
 }
 
-function jsonToReadable(value) {
-  if (!value) return '';
-  try {
-    return extractText(JSON.parse(value));
-  } catch { return String(value); }
-}
-
-function extractText(obj, maxDepth = 5, depth = 0) {
-  if (depth > maxDepth) return '...';
-  if (obj === null || obj === undefined) return '';
-  if (typeof obj === 'string' || typeof obj === 'number' || typeof obj === 'boolean') return String(obj);
-  if (Array.isArray(obj)) return obj.map(x => extractText(x, maxDepth, depth + 1)).filter(Boolean).join(' ');
-  if (typeof obj === 'object') return Object.values(obj).map(x => extractText(x, maxDepth, depth + 1)).filter(Boolean).join(' ');
-  return String(obj);
-}
-
-function buildJSONTree(obj, level = 0) {
+// ===================== JSON Tree =====================
+function buildJSONTree(obj, level = 0, maxDepth = 12) {
+  if (level > maxDepth) return `<span class="truncated">... (max depth)</span>`;
   if (obj === null) return `<span class="null">null</span>`;
   if (obj === undefined) return `<span class="null">undefined</span>`;
-  if (typeof obj === 'string') return `<span class="str">"${escapeHtml(obj)}"</span>`;
+  if (typeof obj === 'string') {
+    if (isDataURL(obj)) {
+      return `<span class="str">"data:image/... (${formatBytes(obj.length)})"</span> <button class="obj-btn" onclick="previewDataURL('${obj.slice(0, 100).replace(/'/g, "\\'")}')" style="font-size:10px;padding:2px 6px;">🖼️ View</button>`;
+    }
+    const display = obj.length > 200 ? obj.slice(0, 200) + '...' : obj;
+    return `<span class="str">"${escapeHtml(display)}"</span>`;
+  }
   if (typeof obj === 'number') return `<span class="num">${obj}</span>`;
   if (typeof obj === 'boolean') return `<span class="bool">${obj}</span>`;
   if (Array.isArray(obj)) {
-    if (!obj.length) return `<span style="color:var(--text-muted)">[]</span>`;
-    return `<ul>${obj.map((item, i) => `<li><span class="key">[${i}]</span>: ${buildJSONTree(item, level+1)}</li>`).join('')}</ul>`;
+    if (obj.length === 0) return `<span style="color:var(--text-muted)">[ ]</span>`;
+    return `<ul>${obj.map((item, i) => `<li><span class="key">[${i}]</span>: ${buildJSONTree(item, level + 1, maxDepth)}</li>`).join('')}</ul>`;
   }
   if (typeof obj === 'object') {
     const keys = Object.keys(obj);
-    if (!keys.length) return `<span style="color:var(--text-muted)">{}</span>`;
-    return `<ul>${keys.map(k => `<li><span class="key">"${escapeHtml(k)}"</span>: ${buildJSONTree(obj[k], level+1)}</li>`).join('')}</ul>`;
+    if (!keys.length) return `<span style="color:var(--text-muted)">{ }</span>`;
+    return `<ul>${keys.map(k => `<li><span class="key">"${escapeHtml(k)}"</span>: ${buildJSONTree(obj[k], level + 1, maxDepth)}</li>`).join('')}</ul>`;
   }
   return escapeHtml(String(obj));
 }
 
-// ===================== Modal =====================
+// Global function to preview data URLs
+window.previewDataURL = function(dataUrlOrPrefix) {
+  // If truncated, try to find in current data
+  let url = dataUrlOrPrefix;
+  if (!url.startsWith('data:image/') || url.length < 100) {
+    // Try to find the full URL in imageColumns
+    if (rawObject) {
+      // Search for full data URL
+      const found = findDataURL(rawObject);
+      if (found) url = found;
+    }
+  }
+  openImageModal(url);
+};
+
+function findDataURL(obj, depth = 0) {
+  if (depth > 10 || !obj) return null;
+  if (typeof obj === 'string' && isDataURL(obj)) return obj;
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      const found = findDataURL(item, depth + 1);
+      if (found) return found;
+    }
+  }
+  if (typeof obj === 'object') {
+    for (const key of Object.keys(obj)) {
+      const found = findDataURL(obj[key], depth + 1);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+// ===================== Modals =====================
 function openJSONModal(title, jsonText) {
   $('modalTitle').textContent = title;
   const body = $('modalBody');
   try {
-    const obj = JSON.parse(jsonText);
+    const obj = typeof jsonText === 'string' ? JSON.parse(jsonText) : jsonText;
     body.innerHTML = `<div class="json-tree">${buildJSONTree(obj)}</div>`;
   } catch {
-    body.innerHTML = `<pre>${escapeHtml(jsonText)}</pre>`;
+    body.innerHTML = `<pre>${escapeHtml(String(jsonText))}</pre>`;
   }
   currentModalData = jsonText;
   $('jsonModal').classList.add('show');
 }
 
-function closeModal() {
+function closeJSONModal() {
   $('jsonModal').classList.remove('show');
   currentModalData = null;
 }
 
-$('modalClose').addEventListener('click', closeModal);
-$('modalCloseBtn').addEventListener('click', closeModal);
-$('jsonModal').addEventListener('click', (e) => { if (e.target === $('jsonModal')) closeModal(); });
+function openImageModal(src) {
+  $('imageModalImg').src = src;
+  $('imageModalTitle').textContent = 'Image Preview';
+  $('imageModal').classList.add('show');
+}
+
+function closeImageModal() {
+  $('imageModal').classList.remove('show');
+  $('imageModalImg').src = '';
+}
+
+$('modalClose').addEventListener('click', closeJSONModal);
+$('modalCloseBtn').addEventListener('click', closeJSONModal);
+$('jsonModal').addEventListener('click', (e) => { if (e.target === $('jsonModal')) closeJSONModal(); });
+
+$('imageModalClose').addEventListener('click', closeImageModal);
+$('imageModal').addEventListener('click', (e) => { if (e.target === $('imageModal')) closeImageModal(); });
 
 $('modalCopyBtn').addEventListener('click', async () => {
   if (!currentModalData) return;
   try {
     let toCopy = currentModalData;
-    try { toCopy = JSON.stringify(JSON.parse(currentModalData), null, 2); } catch {}
+    if (typeof currentModalData !== 'string') {
+      toCopy = JSON.stringify(currentModalData, null, 2);
+    } else {
+      try { toCopy = JSON.stringify(JSON.parse(currentModalData), null, 2); } catch {}
+    }
     await navigator.clipboard.writeText(toCopy);
     showToast('📋 JSON copied!');
   } catch (err) { showToast('Copy fail: ' + err.message, 'error'); }
 });
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && $('jsonModal').classList.contains('show')) closeModal();
+  if (e.key === 'Escape') {
+    if ($('jsonModal').classList.contains('show')) closeJSONModal();
+    if ($('imageModal').classList.contains('show')) closeImageModal();
+  }
 });
 
 // ===================== Drag & Drop =====================
@@ -1271,19 +1359,18 @@ function resetFile() {
 function resetData() {
   headers = [];
   dataRows = [];
+  rawObject = null;
+  nestedArrayColumns = {};
   dateColumnIndex = -1;
-  jsonColumns = new Set();
+  objectColumns = new Set();
+  imageColumns = new Set();
   decryptTimeMs = 0;
   sortColumn = -1;
   sortDirection = 'asc';
   rawDecryptedText = '';
   detectedFormat = '';
-  currentView = 'table';
   $('outputSection').style.display = 'none';
   $('emptyState').style.display = 'block';
-  $('formatToggle').style.display = 'none';
-  $('rawJsonWrap').style.display = 'none';
-  $('tableWrap').style.display = 'block';
   $('filterDate').value = '';
   $('filterMonth').value = '';
   $('filterYear').value = '';
@@ -1293,6 +1380,8 @@ function resetData() {
   $('searchInput').value = '';
   $('activeFilters').innerHTML = '';
   $('filterCountBadge').style.display = 'none';
+  $('nestedTablesWrap').innerHTML = '';
+  $('formatBanner').innerHTML = '';
 }
 
 // ===================== Buttons =====================
@@ -1346,41 +1435,50 @@ $('decryptBtn').addEventListener('click', async () => {
     decryptTimeMs = performance.now() - start;
     rawDecryptedText = plainText;
 
-    // ============ Try JSON parse FIRST ============
+    // ============ Try JSON parse ============
     let jsonObj = null;
     const trimmed = plainText.trim();
     if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-      try {
-        jsonObj = JSON.parse(trimmed);
-      } catch (e) {
-        console.warn('JSON parse attempt failed:', e.message);
-      }
+      try { jsonObj = JSON.parse(trimmed); }
+      catch (e) { console.warn('JSON parse failed:', e.message); }
     }
 
     if (jsonObj !== null) {
-      // JSON detected - flatten to table
+      rawObject = jsonObj;
       detectedFormat = Array.isArray(jsonObj) ? 'JSON Array' : 'JSON Object';
-      const flattened = flattenJSONToTable(jsonObj);
-      headers = flattened.headers;
-      dataRows = flattened.rows;
+      const { headers: h, rows: r, isSingle } = jsonToTableRows(jsonObj);
+      headers = h;
+      dataRows = r;
       dateColumnIndex = detectDateColumn(headers);
-      jsonColumns = detectJSONColumns(headers, dataRows);
-      
-      // Enable "Raw JSON" view for JSON files
-      $('formatToggle').style.display = 'flex';
+      const special = detectSpecialColumns(headers, dataRows);
+      objectColumns = special.objCols;
+      imageColumns = special.imgCols;
+
+      // Extract nested array columns (works, etc.)
+      nestedArrayColumns = {};
+      for (const idx of objectColumns) {
+        if (dataRows[0] && Array.isArray(dataRows[0][idx])) {
+          nestedArrayColumns[idx] = dataRows[0][idx];
+        }
+      }
+
       $('rawJsonContent').textContent = JSON.stringify(jsonObj, null, 2);
-      
-      const statsInfo = jsonObj.entities
-        ? ` | Entities: ${Object.keys(jsonObj.entities).length}`
-        : '';
-      const dateInfo = dateColumnIndex >= 0 ? ` | 📅 Date: "${headers[dateColumnIndex]}"` : '';
-      const jsonInfo = jsonColumns.size > 0 ? ` | 📋 ${jsonColumns.size} JSON column(s)` : '';
-      
+      $('formatToggle').style.display = 'flex';
+
+      const dateInfo = dateColumnIndex >= 0 ? ` | 📅 "${headers[dateColumnIndex]}"` : '';
+      const nestedInfo = Object.keys(nestedArrayColumns).length ? ` | 📦 ${Object.keys(nestedArrayColumns).length} nested array(s)` : '';
+
+      $('formatBanner').innerHTML = `
+        <div class="single-object-banner">
+          📋 <strong>Detected: ${detectedFormat}${isSingle ? ' (1 record)' : ''}</strong> — 
+          ${isSingle ? 'Single row-ஆ காட்டப்படுகிறது.' : `${dataRows.length} rows.`}
+          ${nestedInfo} — nested array-கள் கீழே separate table-ஆ காட்டப்படும்.
+        </div>`;
+
       showStatus(status,
-        `✅ Decrypt ஆனது — ${detectedFormat} (${dataRows.length} rows, ${headers.length} columns) (${decryptTimeMs.toFixed(2)}ms)${statsInfo}${dateInfo}${jsonInfo}`,
+        `✅ Decrypt ஆனது — ${detectedFormat} (${dataRows.length} row, ${headers.length} columns) (${decryptTimeMs.toFixed(2)}ms)${dateInfo}${nestedInfo}`,
         'success');
-      showToast(`✅ ${dataRows.length} rows decrypt ஆனது!`);
-      $('formatBanner').innerHTML = `📋 <strong>Detected format: ${detectedFormat}</strong> — Table-ல flattened data காட்டப்படுகிறது. Raw JSON view-க்கு switch பண்ணலாம்.`;
+      showToast(`✅ ${detectedFormat} decrypt ஆனது!`);
     } else {
       // CSV
       const rows = parseCSV(plainText);
@@ -1389,37 +1487,33 @@ $('decryptBtn').addEventListener('click', async () => {
         headers = rows[0];
         dataRows = rows.slice(1);
         dateColumnIndex = detectDateColumn(headers);
-        jsonColumns = detectJSONColumns(headers, dataRows);
-        
+        const special = detectSpecialColumns(headers, dataRows);
+        objectColumns = special.objCols;
+        imageColumns = special.imgCols;
+
         $('formatToggle').style.display = 'none';
-        
-        const dateInfo = dateColumnIndex >= 0 ? ` | 📅 Date: "${headers[dateColumnIndex]}"` : '';
-        const jsonInfo = jsonColumns.size > 0 ? ` | 📋 ${jsonColumns.size} JSON column(s)` : '';
-        
-        showStatus(status,
-          `✅ Decrypt ஆனது — CSV (${dataRows.length} rows, ${headers.length} columns) (${decryptTimeMs.toFixed(2)}ms)${dateInfo}${jsonInfo}`,
-          'success');
+        $('formatBanner').innerHTML = `
+          <div class="single-object-banner" style="border-left-color: var(--primary);">
+            📊 <strong>Detected: CSV</strong> — ${dataRows.length} rows loaded.
+          </div>`;
+
+        showStatus(status, `✅ Decrypt ஆனது — CSV (${dataRows.length} rows, ${headers.length} columns)`, 'success');
         showToast(`✅ ${dataRows.length} rows decrypt ஆனது!`);
-        $('formatBanner').innerHTML = `📊 <strong>Detected format: CSV</strong> — ${dataRows.length} rows loaded.`;
       } else if (rows.length === 1 && rows[0].length === 1) {
-        // Single cell - show as single column
         detectedFormat = 'Single Value';
         headers = ['value'];
         dataRows = [[rows[0][0]]];
-        dateColumnIndex = -1;
-        jsonColumns = new Set();
-        
         $('formatToggle').style.display = 'none';
-        
-        showStatus(status, `✅ Decrypt ஆனது — Single value (${decryptTimeMs.toFixed(2)}ms)`, 'success');
-        $('formatBanner').innerHTML = `📄 <strong>Single value</strong> — content-ல ஒரே cell மட்டும் இருக்கு.`;
+        $('formatBanner').innerHTML = `<div class="single-object-banner">📄 <strong>Single value</strong></div>`;
+        showStatus(status, `✅ Decrypt ஆனது — Single value`, 'success');
       } else {
-        throw new Error('Decrypt ஆனது, ஆனா content CSV-ஆவோ JSON-ஆவோ parse ஆகல. Console-ல debug பண்ணுங்க.');
+        throw new Error('Decrypt ஆனது, ஆனா content CSV-ஆவோ JSON-ஆவோ parse ஆகல');
       }
     }
 
     setupFilters();
     renderTable();
+    renderNestedTables();
     updateStats();
 
     $('cryptoMeta').innerHTML =
@@ -1429,11 +1523,9 @@ $('decryptBtn').addEventListener('click', async () => {
     $('outputSection').style.display = 'block';
     $('emptyState').style.display = 'none';
   } catch (err) {
-    showStatus(status,
-      '❌ Decrypt fail — CSV_ENCRYPTION_KEY தப்பா இருக்கலாம் அல்லது file corrupt.\n' +
-      'Error: ' + (err.message || err.name),
-      'error');
-    showToast('❌ Decrypt fail ஆனது', 'error');
+    console.error(err);
+    showStatus(status, '❌ Decrypt fail — ' + (err.message || err.name), 'error');
+    showToast('❌ Decrypt fail', 'error');
     $('outputSection').style.display = 'none';
     $('emptyState').style.display = 'block';
   } finally {
@@ -1441,12 +1533,11 @@ $('decryptBtn').addEventListener('click', async () => {
   }
 });
 
-// ===================== Format Toggle (Table vs Raw JSON) =====================
+// ===================== Format Toggle =====================
 $('formatToggle').addEventListener('click', (e) => {
   const btn = e.target.closest('button[data-view]');
   if (!btn) return;
   const view = btn.dataset.view;
-  currentView = view;
 
   $('formatToggle').querySelectorAll('button').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
@@ -1466,10 +1557,7 @@ function setupFilters() {
   const fys = new Set();
   dataRows.forEach(row => {
     const d = getRowDate(row);
-    if (d) {
-      years.add(d.getFullYear());
-      fys.add(getFY(d));
-    }
+    if (d) { years.add(d.getFullYear()); fys.add(getFY(d)); }
   });
 
   const yearSel = $('filterYear');
@@ -1544,12 +1632,14 @@ function getFilteredRows() {
     filtered = filtered.filter(row => {
       for (let i = 0; i < row.length; i++) {
         const cell = row[i];
-        if (!cell) continue;
-        if (String(cell).toLowerCase().includes(searchQuery)) return true;
-        if (jsonColumns.has(i) && looksLikeJSON(cell)) {
-          const readable = jsonToReadable(cell).toLowerCase();
-          if (readable.includes(searchQuery)) return true;
+        if (cell === null || cell === undefined) continue;
+        let str;
+        try {
+          str = typeof cell === 'object' ? JSON.stringify(cell) : String(cell);
+        } catch {
+          str = '';
         }
+        if (str.toLowerCase().includes(searchQuery)) return true;
       }
       return false;
     });
@@ -1557,14 +1647,14 @@ function getFilteredRows() {
 
   if (sortColumn >= 0) {
     filtered = [...filtered].sort((a, b) => {
-      const av = a[sortColumn] ?? '', bv = b[sortColumn] ?? '';
+      const av = a[sortColumn], bv = b[sortColumn];
       const an = parseFloat(av), bn = parseFloat(bv);
-      if (!isNaN(an) && !isNaN(bn) && String(av).trim() !== '' && String(bv).trim() !== '') {
+      if (!isNaN(an) && !isNaN(bn) && typeof av !== 'object' && typeof bv !== 'object') {
         return sortDirection === 'asc' ? an - bn : bn - an;
       }
       const ad = parseDate(av), bd = parseDate(bv);
       if (ad && bd) return sortDirection === 'asc' ? ad - bd : bd - ad;
-      const cmp = String(av).localeCompare(String(bv), undefined, { numeric: true });
+      const cmp = String(av ?? '').localeCompare(String(bv ?? ''), undefined, { numeric: true });
       return sortDirection === 'asc' ? cmp : -cmp;
     });
   }
@@ -1607,8 +1697,92 @@ function updateActiveFiltersUI() {
 function applyFilters() {
   if (!headers.length) return;
   renderTable();
+  renderNestedTables();
   updateStats();
   updateActiveFiltersUI();
+}
+
+// ===================== Cell Renderer =====================
+function renderCell(value, colIdx, rowIdx) {
+  // Image column
+  if (typeof value === 'string' && isDataURL(value)) {
+    const cell = document.createElement('div');
+    cell.className = 'image-cell';
+    const img = document.createElement('img');
+    img.className = 'image-thumb';
+    img.src = value;
+    img.alt = 'Preview';
+    img.title = 'Click to view full';
+    img.onclick = () => openImageModal(value);
+    cell.appendChild(img);
+    return cell;
+  }
+
+  // Array or Object
+  if (value !== null && typeof value === 'object') {
+    const cell = document.createElement('div');
+    cell.className = 'obj-cell';
+
+    const preview = document.createElement('span');
+    preview.className = 'obj-preview';
+    if (Array.isArray(value)) {
+      preview.textContent = `[${value.length} items]`;
+    } else {
+      preview.textContent = shortValuePreview(value);
+    }
+    preview.title = shortValuePreview(value);
+
+    const btn = document.createElement('button');
+    btn.className = 'obj-btn' + (Array.isArray(value) ? ' array' : '');
+    btn.textContent = Array.isArray(value) ? `📦 ${value.length}` : '🔍 View';
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const colName = headers[colIdx] || `Column ${colIdx}`;
+      const rowLabel = dataRows.length === 1 ? 'Data' : `Row ${rowIdx + 1}`;
+      openJSONModal(`${colName} — ${rowLabel}`, value);
+    };
+
+    cell.appendChild(preview);
+    cell.appendChild(btn);
+    return cell;
+  }
+
+  // Boolean
+  if (typeof value === 'boolean') {
+    const span = document.createElement('span');
+    span.className = 'cell-boolean ' + (value ? 'cell-bool-true' : 'cell-bool-false');
+    span.textContent = value ? '✓ TRUE' : '✗ FALSE';
+    return span;
+  }
+
+  // Number
+  if (typeof value === 'number') {
+    const span = document.createElement('span');
+    span.className = 'cell-number';
+    span.textContent = String(value);
+    return span;
+  }
+
+  // Null / undefined
+  if (value === null || value === undefined || value === '') {
+    const span = document.createElement('span');
+    span.className = 'cell-null';
+    span.textContent = value === null ? 'null' : (value === undefined ? '—' : '');
+    return span;
+  }
+
+  // String — check if long (multiline)
+  const s = String(value);
+  const td = document.createElement('div');
+  if (isLongText(s)) {
+    td.className = 'cell-text';
+    td.textContent = s;
+  } else {
+    td.className = 'cell-string';
+    td.textContent = s;
+    td.title = s;
+  }
+  return td;
 }
 
 // ===================== Table Render =====================
@@ -1628,10 +1802,17 @@ function renderTable() {
   headers.forEach((h, i) => {
     const th = document.createElement('th');
     th.textContent = h.trim() || '—';
-    if (jsonColumns.has(i)) {
+    if (objectColumns.has(i)) {
       const b = document.createElement('span');
       b.className = 'badge json';
       b.textContent = 'JSON';
+      b.style.marginLeft = '6px';
+      th.appendChild(b);
+    }
+    if (imageColumns.has(i)) {
+      const b = document.createElement('span');
+      b.className = 'badge';
+      b.textContent = 'IMG';
       b.style.marginLeft = '6px';
       th.appendChild(b);
     }
@@ -1666,7 +1847,6 @@ function renderTable() {
     return;
   }
 
-  const n = headers.length;
   filtered.forEach((row, idx) => {
     const tr = document.createElement('tr');
     const numTd = document.createElement('td');
@@ -1674,31 +1854,9 @@ function renderTable() {
     numTd.className = 'row-num';
     tr.appendChild(numTd);
 
-    for (let j = 0; j < n; j++) {
+    for (let j = 0; j < headers.length; j++) {
       const td = document.createElement('td');
-      const value = row[j] !== undefined ? row[j] : '';
-      if (jsonColumns.has(j) && looksLikeJSON(value)) {
-        const jsonCell = document.createElement('div');
-        jsonCell.className = 'json-cell';
-        const preview = document.createElement('span');
-        preview.className = 'json-preview';
-        const readable = jsonToReadable(value);
-        preview.textContent = readable.slice(0, 80) + (readable.length > 80 ? '...' : '');
-        preview.title = value;
-        const btn = document.createElement('button');
-        btn.className = 'json-btn';
-        btn.textContent = '🔍 View';
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          openJSONModal(`${headers[j].trim()} — Row ${idx + 1}`, value);
-        });
-        jsonCell.appendChild(preview);
-        jsonCell.appendChild(btn);
-        td.appendChild(jsonCell);
-      } else {
-        td.textContent = value;
-        td.title = value;
-      }
+      td.appendChild(renderCell(row[j], j, idx));
       tr.appendChild(td);
     }
     tbody.appendChild(tr);
@@ -1711,6 +1869,83 @@ function toggleSort(colIndex) {
   renderTable();
 }
 
+// ===================== Nested Tables (for arrays like works) =====================
+function renderNestedTables() {
+  const wrap = $('nestedTablesWrap');
+  wrap.innerHTML = '';
+
+  for (const [colIdxStr, arrayData] of Object.entries(nestedArrayColumns)) {
+    const colIdx = Number(colIdxStr);
+    const colName = headers[colIdx] || `Column ${colIdx}`;
+
+    if (!Array.isArray(arrayData) || arrayData.length === 0) continue;
+
+    // Build nested table
+    const allKeys = new Set();
+    const flatRows = arrayData.map(item => {
+      if (item && typeof item === 'object' && !Array.isArray(item)) {
+        const flat = flattenObject(item);
+        Object.keys(flat).forEach(k => allKeys.add(k));
+        return flat;
+      }
+      return { value: item };
+    });
+
+    const nestedHeaders = [...allKeys];
+
+    const container = document.createElement('div');
+    container.className = 'nested-table-wrap';
+
+    const header = document.createElement('div');
+    header.className = 'nested-table-header';
+    header.innerHTML = `📦 <span>${escapeHtml(colName)}</span> <span class="badge" style="background:rgba(139,92,246,0.15);color:#7c3aed;">${arrayData.length} items</span>`;
+    container.appendChild(header);
+
+    const tableWrap = document.createElement('div');
+    tableWrap.style.overflow = 'auto';
+    tableWrap.style.maxHeight = '400px';
+
+    const table = document.createElement('table');
+    const thead = document.createElement('thead');
+    const tbody = document.createElement('tbody');
+
+    const hr = document.createElement('tr');
+    const numTh = document.createElement('th');
+    numTh.textContent = '#';
+    numTh.style.width = '50px';
+    numTh.style.textAlign = 'center';
+    hr.appendChild(numTh);
+    nestedHeaders.forEach(h => {
+      const th = document.createElement('th');
+      th.textContent = h;
+      hr.appendChild(th);
+    });
+    thead.appendChild(hr);
+
+    flatRows.forEach((flatRow, i) => {
+      const tr = document.createElement('tr');
+      const numTd = document.createElement('td');
+      numTd.textContent = i + 1;
+      numTd.className = 'row-num';
+      tr.appendChild(numTd);
+
+      nestedHeaders.forEach(h => {
+        const td = document.createElement('td');
+        td.appendChild(renderCell(flatRow[h], -1, i));
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+
+    table.appendChild(thead);
+    table.appendChild(tbody);
+    tableWrap.appendChild(table);
+    container.appendChild(tableWrap);
+    wrap.appendChild(container);
+  }
+}
+
+// ===================== Stats =====================
 function updateStats() {
   const filtered = getFilteredRows();
   $('statTotal').textContent = dataRows.length.toLocaleString();
