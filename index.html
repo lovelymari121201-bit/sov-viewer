@@ -3,11 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SOV Data Viewer — Decrypt & Export</title>
-<!-- Local libraries — CDN issue இல்ல -->
-<script src="./xlsx.full.min.js"></script>
-<script src="./jspdf.umd.min.js"></script>
-<script src="./jspdf.plugin.autotable.min.js"></script>
+<title>SOV Data Viewer — Filter & Search</title>
 <style>
   :root {
     --bg-1: #667eea;
@@ -24,6 +20,7 @@
     --danger: #ef4444;
     --warning: #f59e0b;
     --info: #3b82f6;
+    --shadow: 0 4px 20px rgba(0,0,0,0.08);
     --shadow-lg: 0 20px 60px rgba(0,0,0,0.15);
   }
   [data-theme="dark"] {
@@ -46,6 +43,8 @@
     background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #4c1d95 100%);
   }
   .container { max-width: 1300px; margin: 0 auto; }
+
+  /* Header */
   .header {
     display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
@@ -59,7 +58,7 @@
     display: flex; align-items: center; justify-content: center;
     font-size: 26px; backdrop-filter: blur(10px);
   }
-  .brand-text h1 { font-size: 22px; font-weight: 700; }
+  .brand-text h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
   .brand-text p { font-size: 12px; opacity: 0.85; margin-top: 2px; }
   .theme-btn {
     background: rgba(255,255,255,0.15);
@@ -70,6 +69,8 @@
     backdrop-filter: blur(10px); transition: all 0.2s;
   }
   .theme-btn:hover { background: rgba(255,255,255,0.25); transform: scale(1.05); }
+
+  /* Card */
   .card {
     background: var(--card-bg);
     border-radius: 20px;
@@ -94,15 +95,19 @@
     display: flex; align-items: center; justify-content: center;
     font-weight: 700; font-size: 15px;
     box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    flex-shrink: 0;
   }
   .card-header h2 { font-size: 17px; font-weight: 700; }
   .card-header p { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  /* Inputs */
   .input-group { margin-bottom: 16px; }
   label {
     display: block; font-size: 13px; font-weight: 600;
     color: var(--text); margin-bottom: 8px;
   }
-  input[type="password"], input[type="search"] {
+  input[type="password"], input[type="text"], input[type="search"],
+  input[type="date"], input[type="month"], input[type="number"] {
     width: 100%; padding: 12px 16px;
     background: var(--card-bg-2);
     border: 2px solid var(--border);
@@ -114,6 +119,26 @@
     outline: none; border-color: var(--primary);
     box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
   }
+  select {
+    width: 100%; padding: 12px 16px;
+    background: var(--card-bg-2);
+    border: 2px solid var(--border);
+    border-radius: 10px; font-size: 14px;
+    font-family: inherit; color: var(--text);
+    transition: all 0.2s;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+  }
+  select:focus {
+    outline: none; border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+  }
+
+  /* Drag Zone */
   .drop-zone {
     border: 2px dashed var(--border);
     border-radius: 14px; padding: 32px 20px;
@@ -125,10 +150,12 @@
     border-color: var(--primary);
     background: rgba(99, 102, 241, 0.05);
   }
+  .drop-zone.dragover { transform: scale(1.01); }
   .drop-icon { font-size: 44px; margin-bottom: 10px; display: block; }
   .drop-text { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
   .drop-subtext { font-size: 12px; color: var(--text-muted); }
   .file-input { display: none; }
+
   .file-selected {
     display: flex; align-items: center; gap: 12px;
     padding: 14px 16px;
@@ -158,6 +185,8 @@
     font-size: 18px; transition: background 0.2s;
   }
   .file-remove:hover { background: rgba(239, 68, 68, 0.1); }
+
+  /* Buttons */
   .btn {
     padding: 13px 24px; border: none; border-radius: 10px;
     font-size: 14px; font-weight: 600; cursor: pointer;
@@ -167,21 +196,19 @@
   }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .btn:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
-  .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; }
-  .btn-success { background: linear-gradient(135deg, var(--success), var(--success-dark)); color: white; }
-  .btn-excel { background: linear-gradient(135deg, #107c41, #0d5e32); color: white; }
-  .btn-pdf { background: linear-gradient(135deg, #dc2626, #991b1b); color: white; }
-  .btn-copy { background: linear-gradient(135deg, #0891b2, #0e7490); color: white; }
-  .btn-secondary {
-    background: var(--card-bg-2); color: var(--text);
-    border: 2px solid var(--border);
-  }
+  .btn-success { background: linear-gradient(135deg, var(--success), var(--success-dark)); color: white; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+  .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
+  .btn-secondary { background: var(--card-bg-2); color: var(--text); border: 2px solid var(--border); }
+  .btn-clear { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3); }
   .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+
+  /* Status */
   .status {
     padding: 14px 18px; border-radius: 10px;
     font-size: 13px; margin-top: 14px; display: none;
     white-space: pre-wrap; font-weight: 500;
-    animation: fadeIn 0.3s ease; line-height: 1.5;
+    line-height: 1.5;
+    animation: fadeIn 0.3s ease;
   }
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   .status.show { display: block; }
@@ -208,9 +235,11 @@
     margin-right: 8px; vertical-align: middle;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Stats */
   .stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 12px; margin-bottom: 20px;
   }
   .stat-card {
@@ -227,17 +256,82 @@
   }
   .stat-value { font-size: 22px; font-weight: 700; line-height: 1.2; }
   .stat-value.text { font-size: 14px; font-family: monospace; }
-  .toolbar {
-    display: flex; gap: 12px;
-    margin-bottom: 16px; flex-wrap: wrap;
+  .stat-value.filtered { color: var(--primary); }
+
+  /* Filter Panel */
+  .filter-panel {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.05), rgba(118, 75, 162, 0.03));
+    border: 2px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 20px;
   }
-  .search-box { flex: 1; min-width: 200px; position: relative; }
-  .search-box input { padding-left: 40px; }
+  .filter-title {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 14px; font-weight: 700;
+    color: var(--text); margin-bottom: 16px;
+  }
+  .filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+  }
+  .filter-item label {
+    font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.05em; color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .filter-item input, .filter-item select {
+    padding: 10px 12px; font-size: 13px;
+  }
+  .filter-actions {
+    display: flex; gap: 10px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .search-box {
+    flex: 1; min-width: 200px; position: relative;
+  }
+  .search-box input {
+    padding-left: 42px;
+  }
   .search-icon {
     position: absolute; left: 14px; top: 50%;
     transform: translateY(-50%);
     color: var(--text-muted); pointer-events: none;
+    font-size: 15px;
   }
+
+  /* Active Filters */
+  .active-filters {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin-bottom: 16px;
+  }
+  .filter-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  }
+  .filter-chip button {
+    background: rgba(255,255,255,0.2);
+    border: none; color: white;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    cursor: pointer; font-size: 12px;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0;
+    transition: background 0.2s;
+  }
+  .filter-chip button:hover { background: rgba(255,255,255,0.4); }
+
+  /* Table */
   .table-wrap {
     overflow: auto; border-radius: 12px;
     border: 1px solid var(--border);
@@ -250,24 +344,52 @@
   thead { position: sticky; top: 0; z-index: 2; }
   th {
     background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-    color: white; padding: 14px 16px; text-align: left;
-    font-weight: 600; white-space: nowrap;
-    font-size: 12px; text-transform: uppercase;
+    color: white; padding: 14px 16px;
+    text-align: left; font-weight: 600;
+    white-space: nowrap; font-size: 12px;
+    text-transform: uppercase;
     letter-spacing: 0.03em;
+    cursor: pointer; user-select: none;
+    transition: background 0.2s;
+    position: relative;
   }
+  th:hover { background: linear-gradient(135deg, var(--primary-dark), #4338ca); }
+  th .sort-indicator {
+    display: inline-block;
+    margin-left: 6px;
+    opacity: 0.5;
+    font-size: 11px;
+  }
+  th.sorted .sort-indicator { opacity: 1; }
   td {
     padding: 12px 16px;
     border-bottom: 1px solid var(--border);
     max-width: 400px; overflow: hidden;
     text-overflow: ellipsis; white-space: nowrap;
+    color: var(--text);
   }
+  tbody tr { transition: background 0.15s; }
   tbody tr:nth-child(even) { background: var(--card-bg-2); }
   tbody tr:hover { background: rgba(99, 102, 241, 0.08); }
+  tbody tr:last-child td { border-bottom: none; }
   .row-num {
     color: var(--text-muted); font-weight: 600;
     font-size: 11px; font-family: monospace;
-    text-align: center; width: 50px;
+    text-align: center; width: 60px;
   }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--primary);
+    font-family: monospace;
+    margin-left: 4px;
+  }
+
   .empty-state {
     text-align: center; padding: 60px 20px;
     color: var(--text-muted);
@@ -275,6 +397,14 @@
   .empty-state .icon { font-size: 56px; margin-bottom: 16px; opacity: 0.5; }
   .empty-state h3 { font-size: 16px; margin-bottom: 6px; color: var(--text); }
   .empty-state p { font-size: 13px; }
+
+  .no-results {
+    text-align: center; padding: 40px 20px;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+  .no-results .icon { font-size: 40px; margin-bottom: 12px; opacity: 0.4; display: block; }
+
   .hint {
     font-size: 12px; color: var(--text-muted);
     margin-top: 6px; display: flex;
@@ -286,6 +416,8 @@
     font-family: monospace;
     border: 1px solid var(--border);
   }
+
+  /* Toast */
   .toast {
     position: fixed; bottom: 24px; right: 24px;
     background: var(--card-bg); color: var(--text);
@@ -301,41 +433,44 @@
   }
   .toast.show { transform: translateY(0); opacity: 1; }
   .toast.error { border-left-color: var(--danger); }
+  .toast.info { border-left-color: var(--info); }
+
   .footer {
     text-align: center; color: rgba(255,255,255,0.7);
     font-size: 12px; margin-top: 24px; padding: 16px;
   }
+
   @media (max-width: 640px) {
     body { padding: 14px 10px; }
     .card { padding: 20px 16px; border-radius: 16px; }
     .brand-text h1 { font-size: 18px; }
+    .brand-icon { width: 44px; height: 44px; font-size: 22px; }
     .btn { padding: 11px 16px; font-size: 13px; }
     .btn-group .btn { flex: 1; min-width: 140px; }
-  }
-  @media print {
-    body { background: white; padding: 0; }
-    .header, .card:not(#outputSection), .toolbar, .btn-group, .footer, .toast { display: none !important; }
-    .card { box-shadow: none; border: none; padding: 0; }
-    .table-wrap { max-height: none; overflow: visible; border: none; }
-    th { background: #6366f1 !important; color: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    thead { position: static; }
+    .stat-value { font-size: 18px; }
+    table { font-size: 12px; }
+    th, td { padding: 10px 12px; }
+    .toast { left: 16px; right: 16px; bottom: 16px; }
+    .filter-grid { grid-template-columns: 1fr 1fr; }
   }
 </style>
 </head>
 <body>
 <div class="container">
 
+  <!-- Header -->
   <div class="header">
     <div class="brand">
       <div class="brand-icon">🔐</div>
       <div class="brand-text">
         <h1>SOV Data Viewer</h1>
-        <p>Decrypt • View • Export to Excel & PDF</p>
+        <p>Decrypt • Filter by Date/Month/Year • Search</p>
       </div>
     </div>
     <button class="theme-btn" id="themeBtn" title="Toggle dark mode">🌙</button>
   </div>
 
+  <!-- Step 1: Upload -->
   <div class="card">
     <div class="card-header">
       <div class="step-num">1</div>
@@ -354,6 +489,7 @@
     <div id="step1Status" class="status"></div>
   </div>
 
+  <!-- Step 2: Decrypt -->
   <div class="card">
     <div class="card-header">
       <div class="step-num">2</div>
@@ -381,45 +517,110 @@
     <div id="step2Status" class="status"></div>
   </div>
 
+  <!-- Step 3: Output -->
   <div class="card" id="outputSection" style="display:none;">
     <div class="card-header">
       <div class="step-num">3</div>
       <div>
         <h2>Decrypted Data</h2>
-        <p id="dataSubtitle">Table view with export options</p>
+        <p id="dataSubtitle">Filter & search பண்ணி data பாருங்க</p>
       </div>
     </div>
+
+    <!-- Stats -->
     <div class="stats">
       <div class="stat-card">
         <div class="stat-label">Total Rows</div>
-        <div class="stat-value" id="statRows">0</div>
+        <div class="stat-value" id="statTotal">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Showing</div>
+        <div class="stat-value filtered" id="statShowing">0</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Columns</div>
         <div class="stat-value" id="statCols">0</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Data Size</div>
-        <div class="stat-value text" id="statSize">0 KB</div>
-      </div>
-      <div class="stat-card">
         <div class="stat-label">Decrypt Time</div>
         <div class="stat-value text" id="statTime">0 ms</div>
       </div>
     </div>
-    <div class="btn-group" style="margin-bottom:16px;">
-      <button class="btn btn-excel" id="downloadExcel"><span>📊</span> Download Excel</button>
-      <button class="btn btn-pdf" id="downloadPdf"><span>📄</span> Download PDF</button>
-      <button class="btn btn-copy" id="copyData"><span>📋</span> Copy Data</button>
-      <button class="btn btn-secondary" id="printBtn"><span>🖨️</span> Print</button>
-    </div>
-    <div class="toolbar">
-      <div class="search-box">
-        <span class="search-icon">🔍</span>
-        <input type="search" id="searchInput" placeholder="Search in table...">
+
+    <!-- Filter Panel -->
+    <div class="filter-panel">
+      <div class="filter-title">
+        <span>🎯</span> Filters
+        <span class="badge" id="filterCountBadge" style="display:none;">0 active</span>
       </div>
+
+      <div class="filter-grid">
+        <div class="filter-item">
+          <label>📅 Specific Date</label>
+          <input type="date" id="filterDate">
+        </div>
+
+        <div class="filter-item">
+          <label>📆 Month</label>
+          <select id="filterMonth">
+            <option value="">All Months</option>
+            <option value="01">January</option>
+            <option value="02">February</option>
+            <option value="03">March</option>
+            <option value="04">April</option>
+            <option value="05">May</option>
+            <option value="06">June</option>
+            <option value="07">July</option>
+            <option value="08">August</option>
+            <option value="09">September</option>
+            <option value="10">October</option>
+            <option value="11">November</option>
+            <option value="12">December</option>
+          </select>
+        </div>
+
+        <div class="filter-item">
+          <label>📊 Year</label>
+          <select id="filterYear">
+            <option value="">All Years</option>
+          </select>
+        </div>
+
+        <div class="filter-item">
+          <label>🏛️ Financial Year</label>
+          <select id="filterFY">
+            <option value="">All FY</option>
+          </select>
+        </div>
+
+        <div class="filter-item">
+          <label>📍 Date Range From</label>
+          <input type="date" id="filterFrom">
+        </div>
+
+        <div class="filter-item">
+          <label>📍 Date Range To</label>
+          <input type="date" id="filterTo">
+        </div>
+      </div>
+
+      <div class="filter-actions">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="search" id="searchInput" placeholder="Any column-ல search பண்ணுங்க...">
+        </div>
+        <button class="btn btn-clear" id="clearFiltersBtn">
+          <span>✕</span> Clear All
+        </button>
+      </div>
+
+      <!-- Active filter chips -->
+      <div class="active-filters" id="activeFilters"></div>
     </div>
+
+    <!-- Table -->
     <div id="cryptoMeta" style="margin-bottom:12px;font-size:12px;color:var(--text-muted);"></div>
+
     <div class="table-wrap">
       <table id="dataTable">
         <thead></thead>
@@ -428,6 +629,7 @@
     </div>
   </div>
 
+  <!-- Empty State -->
   <div class="card" id="emptyState">
     <div class="empty-state">
       <div class="icon">📊</div>
@@ -442,14 +644,20 @@
 <div class="toast" id="toast"></div>
 
 <script>
+// ===================== State =====================
 let parsedFile = null;
-let decryptedRows = [];
-let decryptedText = '';
+let allRows = [];          // All decrypted rows [header, ...data]
+let dataRows = [];         // Data rows only (no header)
+let headers = [];          // Header row
+let dateColumnIndex = -1;  // Auto-detected date column
 let decryptTimeMs = 0;
 let fileInfo = null;
+let sortColumn = -1;
+let sortDirection = 'asc';
+
 const $ = id => document.getElementById(id);
 
-// Theme
+// ===================== Theme =====================
 const themeBtn = $('themeBtn');
 const savedTheme = localStorage.getItem('theme') || 'light';
 document.documentElement.setAttribute('data-theme', savedTheme);
@@ -462,7 +670,8 @@ themeBtn.addEventListener('click', () => {
   localStorage.setItem('theme', next);
 });
 
-function showToast(msg, type = 'success', duration = 3000) {
+// ===================== Toast =====================
+function showToast(msg, type = 'success', duration = 2500) {
   const toast = $('toast');
   toast.textContent = msg;
   toast.className = 'toast show ' + type;
@@ -470,6 +679,7 @@ function showToast(msg, type = 'success', duration = 3000) {
   toast._timer = setTimeout(() => toast.className = 'toast ' + type, duration);
 }
 
+// ===================== Utils =====================
 function showStatus(el, msg, type = 'info', isLoading = false) {
   el.innerHTML = (isLoading ? '<span class="loader"></span>' : '') + msg;
   el.className = 'status show ' + type;
@@ -489,6 +699,10 @@ function formatBytes(bytes) {
   return (bytes / 1024 / 1024).toFixed(2) + ' MB';
 }
 
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
 async function deriveKey(password) {
   const enc = new TextEncoder();
   const keyMaterial = await crypto.subtle.digest('SHA-256', enc.encode(password));
@@ -497,18 +711,27 @@ async function deriveKey(password) {
 
 async function decryptSOVCSV1(text, password) {
   const parts = text.split(':');
-  if (parts.length !== 4 || parts[0] !== 'SOVCSV1') throw new Error('Not a valid SOVCSV1 format.');
+  if (parts.length !== 4 || parts[0] !== 'SOVCSV1') {
+    throw new Error('Not a valid SOVCSV1 format.');
+  }
   const iv = b64ToBytes(parts[1]);
   const authTag = b64ToBytes(parts[2]);
   const ciphertext = b64ToBytes(parts[3]);
+
   const combined = new Uint8Array(ciphertext.length + authTag.length);
   combined.set(ciphertext, 0);
   combined.set(authTag, ciphertext.length);
+
   const key = await deriveKey(password);
-  const plainBuf = await crypto.subtle.decrypt({ name: 'AES-GCM', iv, tagLength: 128 }, key, combined);
+  const plainBuf = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv, tagLength: 128 },
+    key,
+    combined
+  );
   return new TextDecoder('utf-8').decode(plainBuf);
 }
 
+// ===================== CSV Parser =====================
 function parseCSV(text) {
   const rows = [];
   let cur = '', row = [], inQ = false;
@@ -530,29 +753,107 @@ function parseCSV(text) {
   return rows.filter(r => r.some(c => c.trim() !== ''));
 }
 
-// Drag & Drop
+// ===================== Date helpers =====================
+// Accept: YYYY-MM-DD, DD-MM-YYYY, DD/MM/YYYY, YYYY/MM/DD, ISO datetime
+function parseDate(value) {
+  if (!value) return null;
+  const s = String(value).trim();
+  if (!s) return null;
+
+  // YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+
+  // DD-MM-YYYY or DD/MM/YYYY
+  m = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
+  if (m) {
+    const d = +m[1], mo = +m[2], y = +m[3];
+    if (mo > 12 && d <= 12) return new Date(y, d - 1, mo);
+    return new Date(y, mo - 1, d);
+  }
+
+  // YYYY/MM/DD
+  m = s.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})/);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+
+  // DD-MMM-YYYY (e.g. 15-Jan-2024)
+  m = s.match(/^(\d{1,2})[-\s]([A-Za-z]{3,})[-\s](\d{4})/);
+  if (m) {
+    const months = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+    const mo = months[m[2].toLowerCase().slice(0,3)];
+    if (mo !== undefined) return new Date(+m[3], mo, +m[1]);
+  }
+
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function toDateKey(d) {
+  if (!d) return '';
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+
+function getFY(d) {
+  if (!d) return '';
+  const y = d.getFullYear();
+  const m = d.getMonth() + 1;
+  const startYear = m >= 4 ? y : y - 1;
+  return `${startYear}-${startYear + 1}`;
+}
+
+// Auto-detect date column: find header matching common names
+function detectDateColumn(headerRow) {
+  const dateHeaderPatterns = [
+    /^date$/i, /^dt$/i, /^day$/i,
+    /date$/i, /_date$/i, /date_/i,
+    /^(created|updated|entry|work|attendance|request|start|end|ot|power|payment|advance|po|invoice|dc)_?at$/i,
+    /_at$/i,
+    /^timestamp$/i
+  ];
+  for (let i = 0; i < headerRow.length; i++) {
+    const h = String(headerRow[i]).trim();
+    if (dateHeaderPatterns.some(p => p.test(h))) return i;
+  }
+  // Fallback: check first data row for date-like value
+  return -1;
+}
+
+// Build lookup for each row's date
+function getRowDate(row) {
+  if (dateColumnIndex === -1) return null;
+  return parseDate(row[dateColumnIndex]);
+}
+
+// ===================== Drag & Drop =====================
 const dropZone = $('dropZone');
 const encFile = $('encFile');
+
 dropZone.addEventListener('click', () => encFile.click());
-dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  dropZone.classList.add('dragover');
+});
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
 dropZone.addEventListener('drop', (e) => {
   e.preventDefault();
   dropZone.classList.remove('dragover');
-  if (e.dataTransfer.files.length) { encFile.files = e.dataTransfer.files; handleFile(e.dataTransfer.files[0]); }
+  if (e.dataTransfer.files.length) {
+    encFile.files = e.dataTransfer.files;
+    handleFile(e.dataTransfer.files[0]);
+  }
 });
-encFile.addEventListener('change', (e) => { if (e.target.files.length) handleFile(e.target.files[0]); });
+encFile.addEventListener('change', (e) => {
+  if (e.target.files.length) handleFile(e.target.files[0]);
+});
 
 async function handleFile(file) {
   const status = $('step1Status');
-  parsedFile = null;
-  decryptedRows = [];
-  decryptedText = '';
-  fileInfo = null;
-  $('outputSection').style.display = 'none';
-  $('emptyState').style.display = 'block';
+  resetData();
   $('fileInfoWrap').innerHTML = '';
   $('step2Status').className = 'status';
+  $('step1Status').className = 'status';
+
   if (!file) return;
 
   $('fileInfoWrap').innerHTML = `
@@ -567,25 +868,35 @@ async function handleFile(file) {
 
   try {
     const text = (await file.text()).trim();
+
     if (text.startsWith('SOVCSV1:')) {
       const parts = text.split(':');
-      if (parts.length !== 4) throw new Error('SOVCSV1 format invalid — ' + parts.length + ' parts');
-      const ivB = b64ToBytes(parts[1]);
-      const tagB = b64ToBytes(parts[2]);
-      const ctB = b64ToBytes(parts[3]);
+      if (parts.length !== 4) throw new Error('SOVCSV1 format invalid — ' + parts.length + ' parts (4 expected)');
+      const ivBytes = b64ToBytes(parts[1]);
+      const tagBytes = b64ToBytes(parts[2]);
+      const ctBytes = b64ToBytes(parts[3]);
+
       fileInfo = { name: file.name, size: file.size };
       parsedFile = text;
-      showStatus(status, `✅ File ready — SOVCSV1 format\nIV: ${ivB.length}B • Auth Tag: ${tagB.length}B • Ciphertext: ${ctB.length}B`, 'success');
+      showStatus(status,
+        `✅ File ready — SOVCSV1 format\n` +
+        `IV: ${ivBytes.length}B • Auth Tag: ${tagBytes.length}B • Ciphertext: ${ctBytes.length}B`,
+        'success');
     } else if (text.startsWith('{')) {
-      const obj = JSON.parse(text);
-      if (obj.iv && (obj.ciphertext || obj.cipher)) {
-        fileInfo = { name: file.name, size: file.size };
-        parsedFile = 'JSON:' + text;
-        showStatus(status, '✅ JSON envelope format ready', 'success');
-      } else throw new Error('JSON-ல iv/ciphertext இல்ல');
+      try {
+        const obj = JSON.parse(text);
+        if (obj.iv && (obj.ciphertext || obj.cipher)) {
+          fileInfo = { name: file.name, size: file.size };
+          parsedFile = 'JSON:' + text;
+          showStatus(status, '✅ JSON envelope format ready', 'success');
+        } else throw new Error('JSON-ல iv/ciphertext இல்ல');
+      } catch (je) {
+        throw new Error('File format unrecognized. SOVCSV1 format-ஆ இருக்கணும்.');
+      }
     } else {
-      throw new Error('File format unrecognized.');
+      throw new Error('File format unrecognized. SOVCSV1 format-ஆ இருக்கணும்.');
     }
+
     updateButtons();
   } catch (err) {
     showStatus(status, '❌ ' + err.message, 'error');
@@ -598,20 +909,36 @@ function resetFile() {
   encFile.value = '';
   parsedFile = null;
   fileInfo = null;
-  decryptedRows = [];
-  decryptedText = '';
+  resetData();
   $('fileInfoWrap').innerHTML = '';
   $('step1Status').className = 'status';
   $('step2Status').className = 'status';
-  $('outputSection').style.display = 'none';
-  $('emptyState').style.display = 'block';
   updateButtons();
 }
 
-function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function resetData() {
+  allRows = [];
+  dataRows = [];
+  headers = [];
+  dateColumnIndex = -1;
+  decryptTimeMs = 0;
+  sortColumn = -1;
+  sortDirection = 'asc';
+  $('outputSection').style.display = 'none';
+  $('emptyState').style.display = 'block';
+  // Reset filters
+  $('filterDate').value = '';
+  $('filterMonth').value = '';
+  $('filterYear').value = '';
+  $('filterFY').value = '';
+  $('filterFrom').value = '';
+  $('filterTo').value = '';
+  $('searchInput').value = '';
+  $('activeFilters').innerHTML = '';
+  $('filterCountBadge').style.display = 'none';
 }
 
+// ===================== Buttons =====================
 $('decKey').addEventListener('input', updateButtons);
 $('decKey').addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !$('decryptBtn').disabled) $('decryptBtn').click();
@@ -627,11 +954,13 @@ $('resetBtn').addEventListener('click', () => {
   showToast('Reset ஆனது', 'info');
 });
 
+// ===================== Decrypt =====================
 $('decryptBtn').addEventListener('click', async () => {
   const status = $('step2Status');
   const password = $('decKey').value;
+
   if (!parsedFile) { showStatus(status, '❌ முதலில் file upload பண்ணுங்க', 'error'); return; }
-  if (!password) { showStatus(status, '❌ Key enter பண்ணுங்க', 'error'); return; }
+  if (!password) { showStatus(status, '❌ CSV_ENCRYPTION_KEY enter பண்ணுங்க', 'error'); return; }
 
   $('decryptBtn').disabled = true;
   showStatus(status, 'Decrypting...', 'loading', true);
@@ -639,6 +968,7 @@ $('decryptBtn').addEventListener('click', async () => {
   try {
     const start = performance.now();
     let plainText;
+
     if (parsedFile.startsWith('JSON:')) {
       const obj = JSON.parse(parsedFile.slice(5));
       const iv = b64ToBytes(obj.iv);
@@ -646,4 +976,352 @@ $('decryptBtn').addEventListener('click', async () => {
       const authTag = obj.authTag ? b64ToBytes(obj.authTag) : null;
       let combined;
       if (authTag) {
-        combined = new Uint8
+        combined = new Uint8Array(ciphertext.length + authTag.length);
+        combined.set(ciphertext, 0);
+        combined.set(authTag, ciphertext.length);
+      } else {
+        combined = ciphertext;
+      }
+      const key = await deriveKey(password);
+      const plainBuf = await crypto.subtle.decrypt({ name: 'AES-GCM', iv, tagLength: 128 }, key, combined);
+      plainText = new TextDecoder().decode(plainBuf);
+    } else {
+      plainText = await decryptSOVCSV1(parsedFile, password);
+    }
+
+    decryptTimeMs = performance.now() - start;
+
+    const rows = parseCSV(plainText);
+    if (rows.length > 0 && rows[0].length > 1) {
+      headers = rows[0];
+      dataRows = rows.slice(1);
+      allRows = rows;
+      dateColumnIndex = detectDateColumn(headers);
+
+      setupFilters();
+      renderTable();
+      updateStats();
+
+      const dateInfo = dateColumnIndex >= 0
+        ? ` | 📅 Date column: "${headers[dateColumnIndex]}"`
+        : ' | ⚠️ Date column detect ஆகல';
+
+      showStatus(status,
+        `✅ Decrypt ஆனது — ${dataRows.length} rows, ${headers.length} columns (${decryptTimeMs.toFixed(2)}ms)${dateInfo}`,
+        'success');
+      showToast(`✅ ${dataRows.length} rows decrypt ஆனது!`);
+
+      $('cryptoMeta').innerHTML =
+        `🔒 <strong>AES-256-GCM</strong> • SHA-256 KDF • IV 12B • Auth Tag 16B • Decrypt: ${decryptTimeMs.toFixed(2)}ms`;
+      $('dataSubtitle').textContent = fileInfo?.name || 'Decrypted data';
+
+      $('outputSection').style.display = 'block';
+      $('emptyState').style.display = 'none';
+    } else {
+      throw new Error('CSV format-ல data இல்ல அல்லது single column மட்டும்');
+    }
+  } catch (err) {
+    showStatus(status,
+      '❌ Decrypt fail — CSV_ENCRYPTION_KEY தப்பா இருக்கலாம் அல்லது file corrupt.\n' +
+      'Error: ' + (err.message || err.name),
+      'error');
+    showToast('❌ Decrypt fail ஆனது', 'error');
+    $('outputSection').style.display = 'none';
+    $('emptyState').style.display = 'block';
+  } finally {
+    updateButtons();
+  }
+});
+
+// ===================== Setup Filters =====================
+function setupFilters() {
+  // Extract years from date column
+  const years = new Set();
+  const fys = new Set();
+
+  dataRows.forEach(row => {
+    const d = getRowDate(row);
+    if (d) {
+      years.add(d.getFullYear());
+      fys.add(getFY(d));
+    }
+  });
+
+  // Populate year dropdown
+  const yearSel = $('filterYear');
+  yearSel.innerHTML = '<option value="">All Years</option>';
+  [...years].sort((a, b) => b - a).forEach(y => {
+    const opt = document.createElement('option');
+    opt.value = y;
+    opt.textContent = y;
+    yearSel.appendChild(opt);
+  });
+
+  // Populate FY dropdown
+  const fySel = $('filterFY');
+  fySel.innerHTML = '<option value="">All FY</option>';
+  [...fys].sort().reverse().forEach(fy => {
+    const opt = document.createElement('option');
+    opt.value = fy;
+    opt.textContent = `FY ${fy}`;
+    fySel.appendChild(opt);
+  });
+}
+
+// ===================== Filter & Search Logic =====================
+function getFilteredRows() {
+  const dateFilter = $('filterDate').value;
+  const monthFilter = $('filterMonth').value;
+  const yearFilter = $('filterYear').value;
+  const fyFilter = $('filterFY').value;
+  const fromFilter = $('filterFrom').value;
+  const toFilter = $('filterTo').value;
+  const searchQuery = $('searchInput').value.toLowerCase().trim();
+
+  let filtered = dataRows;
+
+  // Date filter (specific)
+  if (dateFilter && dateColumnIndex >= 0) {
+    const target = dateFilter; // YYYY-MM-DD
+    filtered = filtered.filter(row => {
+      const d = getRowDate(row);
+      return d && toDateKey(d) === target;
+    });
+  }
+
+  // Month filter
+  if (monthFilter && dateColumnIndex >= 0) {
+    filtered = filtered.filter(row => {
+      const d = getRowDate(row);
+      if (!d) return false;
+      return String(d.getMonth() + 1).padStart(2, '0') === monthFilter;
+    });
+  }
+
+  // Year filter
+  if (yearFilter && dateColumnIndex >= 0) {
+    filtered = filtered.filter(row => {
+      const d = getRowDate(row);
+      return d && String(d.getFullYear()) === yearFilter;
+    });
+  }
+
+  // FY filter
+  if (fyFilter && dateColumnIndex >= 0) {
+    filtered = filtered.filter(row => {
+      const d = getRowDate(row);
+      return d && getFY(d) === fyFilter;
+    });
+  }
+
+  // Date range
+  if (fromFilter && dateColumnIndex >= 0) {
+    const fromDate = new Date(fromFilter + 'T00:00:00');
+    filtered = filtered.filter(row => {
+      const d = getRowDate(row);
+      return d && d >= fromDate;
+    });
+  }
+  if (toFilter && dateColumnIndex >= 0) {
+    const toDate = new Date(toFilter + 'T23:59:59');
+    filtered = filtered.filter(row => {
+      const d = getRowDate(row);
+      return d && d <= toDate;
+    });
+  }
+
+  // Global search (any column)
+  if (searchQuery) {
+    filtered = filtered.filter(row =>
+      row.some(cell => String(cell).toLowerCase().includes(searchQuery))
+    );
+  }
+
+  // Sort
+  if (sortColumn >= 0) {
+    filtered = [...filtered].sort((a, b) => {
+      const av = a[sortColumn] ?? '';
+      const bv = b[sortColumn] ?? '';
+      // Try numeric compare
+      const an = parseFloat(av), bn = parseFloat(bv);
+      if (!isNaN(an) && !isNaN(bn)) {
+        return sortDirection === 'asc' ? an - bn : bn - an;
+      }
+      // Try date compare
+      const ad = parseDate(av), bd = parseDate(bv);
+      if (ad && bd) {
+        return sortDirection === 'asc' ? ad - bd : bd - ad;
+      }
+      // String compare
+      const cmp = String(av).localeCompare(String(bv), undefined, { numeric: true });
+      return sortDirection === 'asc' ? cmp : -cmp;
+    });
+  }
+
+  return filtered;
+}
+
+function updateActiveFiltersUI() {
+  const chips = [];
+  const addChip = (label, id, type) => {
+    chips.push({ label, id, type });
+  };
+
+  if ($('filterDate').value) addChip(`📅 ${$('filterDate').value}`, 'filterDate', 'date');
+  if ($('filterMonth').value) {
+    const monthName = $('filterMonth').selectedOptions[0].textContent;
+    addChip(`📆 ${monthName}`, 'filterMonth', 'select');
+  }
+  if ($('filterYear').value) addChip(`📊 ${$('filterYear').value}`, 'filterYear', 'select');
+  if ($('filterFY').value) addChip(`🏛️ FY ${$('filterFY').value}`, 'filterFY', 'select');
+  if ($('filterFrom').value) addChip(`From: ${$('filterFrom').value}`, 'filterFrom', 'date');
+  if ($('filterTo').value) addChip(`To: ${$('filterTo').value}`, 'filterTo', 'date');
+  if ($('searchInput').value.trim()) addChip(`🔍 "${$('searchInput').value.trim()}"`, 'searchInput', 'search');
+
+  const wrap = $('activeFilters');
+  wrap.innerHTML = '';
+  chips.forEach(chip => {
+    const el = document.createElement('div');
+    el.className = 'filter-chip';
+    el.innerHTML = `<span>${escapeHtml(chip.label)}</span><button data-clear="${chip.id}" title="Remove">✕</button>`;
+    wrap.appendChild(el);
+  });
+
+  const badge = $('filterCountBadge');
+  if (chips.length > 0) {
+    badge.textContent = `${chips.length} active`;
+    badge.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+  }
+
+  // Wire up remove buttons
+  wrap.querySelectorAll('button[data-clear]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      $(btn.dataset.clear).value = '';
+      applyFilters();
+    });
+  });
+}
+
+// ===================== Apply filters =====================
+function applyFilters() {
+  if (!headers.length) return;
+  renderTable();
+  updateStats();
+  updateActiveFiltersUI();
+}
+
+// ===================== Table Render =====================
+function renderTable() {
+  const filtered = getFilteredRows();
+  const thead = $('dataTable').querySelector('thead');
+  const tbody = $('dataTable').querySelector('tbody');
+  thead.innerHTML = '';
+  tbody.innerHTML = '';
+
+  // Header with sort
+  const hr = document.createElement('tr');
+  const numTh = document.createElement('th');
+  numTh.textContent = '#';
+  numTh.className = 'row-num';
+  hr.appendChild(numTh);
+
+  headers.forEach((h, i) => {
+    const th = document.createElement('th');
+    th.textContent = h.trim() || '—';
+    if (i === sortColumn) {
+      th.classList.add('sorted');
+      const ind = document.createElement('span');
+      ind.className = 'sort-indicator';
+      ind.textContent = sortDirection === 'asc' ? '▲' : '▼';
+      th.appendChild(ind);
+    } else {
+      const ind = document.createElement('span');
+      ind.className = 'sort-indicator';
+      ind.textContent = '⇅';
+      th.appendChild(ind);
+    }
+    th.title = 'Click to sort';
+    th.addEventListener('click', () => toggleSort(i));
+    hr.appendChild(th);
+  });
+  thead.appendChild(hr);
+
+  // If no results
+  if (filtered.length === 0) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = headers.length + 1;
+    td.innerHTML = '<div class="no-results"><span class="icon">🔍</span>No matching records found. Filters-ஐ adjust பண்ணுங்க.</div>';
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+    return;
+  }
+
+  // Body
+  const n = headers.length;
+  filtered.forEach((row, idx) => {
+    const tr = document.createElement('tr');
+    const numTd = document.createElement('td');
+    numTd.textContent = idx + 1;
+    numTd.className = 'row-num';
+    tr.appendChild(numTd);
+
+    for (let j = 0; j < n; j++) {
+      const td = document.createElement('td');
+      td.textContent = row[j] !== undefined ? row[j] : '';
+      td.title = td.textContent;
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  });
+}
+
+function toggleSort(colIndex) {
+  if (sortColumn === colIndex) {
+    sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortColumn = colIndex;
+    sortDirection = 'asc';
+  }
+  renderTable();
+}
+
+function updateStats() {
+  const filtered = getFilteredRows();
+  $('statTotal').textContent = dataRows.length.toLocaleString();
+  $('statShowing').textContent = filtered.length.toLocaleString();
+  $('statCols').textContent = headers.length;
+  $('statTime').textContent = decryptTimeMs.toFixed(2) + ' ms';
+}
+
+// ===================== Wire up filter events =====================
+['filterDate', 'filterMonth', 'filterYear', 'filterFY', 'filterFrom', 'filterTo'].forEach(id => {
+  $(id).addEventListener('change', applyFilters);
+  $(id).addEventListener('input', applyFilters);
+});
+
+let searchTimer;
+$('searchInput').addEventListener('input', () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(applyFilters, 200);
+});
+
+$('clearFiltersBtn').addEventListener('click', () => {
+  $('filterDate').value = '';
+  $('filterMonth').value = '';
+  $('filterYear').value = '';
+  $('filterFY').value = '';
+  $('filterFrom').value = '';
+  $('filterTo').value = '';
+  $('searchInput').value = '';
+  applyFilters();
+  showToast('Filters clear ஆனது', 'info');
+});
+
+// ===================== Init =====================
+updateButtons();
+</script>
+</body>
+</html>
