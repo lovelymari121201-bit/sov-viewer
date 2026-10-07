@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SOV Data Viewer — Decrypt & Export</title>
+<!-- Local libraries — CDN issue இல்ல -->
+<script src="./xlsx.full.min.js"></script>
+<script src="./jspdf.umd.min.js"></script>
+<script src="./jspdf.plugin.autotable.min.js"></script>
+<style>
+  :root {
+    --bg-1: #667eea;
+    --bg-2: #764ba2;
+    --card-bg: #ffffff;
+    --card-bg-2: #f8fafc;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --primary: #6366f1;
+    --primary-dark: #4f46e5;
+    --success: #10b981;
+    --success-dark: #059669;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --info: #3b82f6;
+    --shadow-lg: 0 20px 60px rgba(0,0,0,0.15);
+  }
+  [data-theme="dark"] {
+    --card-bg: #1e293b;
+    --card-bg-2: #0f172a;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --border: #334155;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    padding: 24px 16px;
+    color: var(--text);
+  }
+  [data-theme="dark"] body {
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #4c1d95 100%);
+  }
+  .container { max-width: 1300px; margin: 0 auto; }
+  .header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+  }
+  .brand { display: flex; align-items: center; gap: 14px; color: white; }
+  .brand-icon {
+    width: 52px; height: 52px;
+    background: rgba(255,255,255,0.15);
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; backdrop-filter: blur(10px);
+  }
+  .brand-text h1 { font-size: 22px; font-weight: 700; }
+  .brand-text p { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+  .theme-btn {
+    background: rgba(255,255,255,0.15);
+    border: 2px solid rgba(255,255,255,0.3);
+    color: white; width: 44px; height: 44px;
+    border-radius: 12px; cursor: pointer; font-size: 20px;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(10px); transition: all 0.2s;
+  }
+  .theme-btn:hover { background: rgba(255,255,255,0.25); transform: scale(1.05); }
+  .card {
+    background: var(--card-bg);
+    border-radius: 20px;
+    box-shadow: var(--shadow-lg);
+    padding: 28px; margin-bottom: 20px;
+    border: 1px solid var(--border);
+    animation: slideUp 0.4s ease-out;
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .card-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 20px; padding-bottom: 16px;
+    border-bottom: 2px solid var(--border);
+  }
+  .step-num {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 15px;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  }
+  .card-header h2 { font-size: 17px; font-weight: 700; }
+  .card-header p { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .input-group { margin-bottom: 16px; }
+  label {
+    display: block; font-size: 13px; font-weight: 600;
+    color: var(--text); margin-bottom: 8px;
+  }
+  input[type="password"], input[type="search"] {
+    width: 100%; padding: 12px 16px;
+    background: var(--card-bg-2);
+    border: 2px solid var(--border);
+    border-radius: 10px; font-size: 14px;
+    font-family: inherit; color: var(--text);
+    transition: all 0.2s;
+  }
+  input:focus {
+    outline: none; border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+  }
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 14px; padding: 32px 20px;
+    text-align: center; cursor: pointer;
+    background: var(--card-bg-2);
+    transition: all 0.2s;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--primary);
+    background: rgba(99, 102, 241, 0.05);
+  }
+  .drop-icon { font-size: 44px; margin-bottom: 10px; display: block; }
+  .drop-text { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .drop-subtext { font-size: 12px; color: var(--text-muted); }
+  .file-input { display: none; }
+  .file-selected {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05));
+    border: 2px solid var(--success);
+    border-radius: 12px; margin-top: 12px;
+  }
+  .file-selected .icon {
+    width: 40px; height: 40px; background: var(--success);
+    color: white; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+  }
+  .file-selected .info { flex: 1; min-width: 0; }
+  .file-selected .name {
+    font-weight: 600; font-size: 14px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .file-selected .meta {
+    font-size: 12px; color: var(--text-muted);
+    margin-top: 2px; font-family: monospace;
+  }
+  .file-remove {
+    background: transparent; border: none;
+    color: var(--danger); cursor: pointer;
+    padding: 8px; border-radius: 8px;
+    font-size: 18px; transition: background 0.2s;
+  }
+  .file-remove:hover { background: rgba(239, 68, 68, 0.1); }
+  .btn {
+    padding: 13px 24px; border: none; border-radius: 10px;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 8px; white-space: nowrap;
+    transition: all 0.2s; font-family: inherit;
+  }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
+  .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; }
+  .btn-success { background: linear-gradient(135deg, var(--success), var(--success-dark)); color: white; }
+  .btn-excel { background: linear-gradient(135deg, #107c41, #0d5e32); color: white; }
+  .btn-pdf { background: linear-gradient(135deg, #dc2626, #991b1b); color: white; }
+  .btn-copy { background: linear-gradient(135deg, #0891b2, #0e7490); color: white; }
+  .btn-secondary {
+    background: var(--card-bg-2); color: var(--text);
+    border: 2px solid var(--border);
+  }
+  .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+  .status {
+    padding: 14px 18px; border-radius: 10px;
+    font-size: 13px; margin-top: 14px; display: none;
+    white-space: pre-wrap; font-weight: 500;
+    animation: fadeIn 0.3s ease; line-height: 1.5;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .status.show { display: block; }
+  .status.success {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05));
+    color: var(--success-dark); border-left: 4px solid var(--success);
+  }
+  .status.error {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.05));
+    color: #991b1b; border-left: 4px solid var(--danger);
+  }
+  .status.info {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.05));
+    color: #1e40af; border-left: 4px solid var(--info);
+  }
+  .status.loading {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(217, 119, 6, 0.05));
+    color: #92400e; border-left: 4px solid var(--warning);
+  }
+  .loader {
+    display: inline-block; width: 14px; height: 14px;
+    border: 2px solid currentColor; border-top-color: transparent;
+    border-radius: 50%; animation: spin 0.8s linear infinite;
+    margin-right: 8px; vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px; margin-bottom: 20px;
+  }
+  .stat-card {
+    background: var(--card-bg-2);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px;
+    transition: transform 0.2s;
+  }
+  .stat-card:hover { transform: translateY(-2px); }
+  .stat-label {
+    font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.05em; color: var(--text-muted);
+    font-weight: 600; margin-bottom: 4px;
+  }
+  .stat-value { font-size: 22px; font-weight: 700; line-height: 1.2; }
+  .stat-value.text { font-size: 14px; font-family: monospace; }
+  .toolbar {
+    display: flex; gap: 12px;
+    margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .search-box { flex: 1; min-width: 200px; position: relative; }
+  .search-box input { padding-left: 40px; }
+  .search-icon {
+    position: absolute; left: 14px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted); pointer-events: none;
+  }
+  .table-wrap {
+    overflow: auto; border-radius: 12px;
+    border: 1px solid var(--border);
+    max-height: 600px;
+    background: var(--card-bg);
+  }
+  table {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+  }
+  thead { position: sticky; top: 0; z-index: 2; }
+  th {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white; padding: 14px 16px; text-align: left;
+    font-weight: 600; white-space: nowrap;
+    font-size: 12px; text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    max-width: 400px; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap;
+  }
+  tbody tr:nth-child(even) { background: var(--card-bg-2); }
+  tbody tr:hover { background: rgba(99, 102, 241, 0.08); }
+  .row-num {
+    color: var(--text-muted); font-weight: 600;
+    font-size: 11px; font-family: monospace;
+    text-align: center; width: 50px;
+  }
+  .empty-state {
+    text-align: center; padding: 60px 20px;
+    color: var(--text-muted);
+  }
+  .empty-state .icon { font-size: 56px; margin-bottom: 16px; opacity: 0.5; }
+  .empty-state h3 { font-size: 16px; margin-bottom: 6px; color: var(--text); }
+  .empty-state p { font-size: 13px; }
+  .hint {
+    font-size: 12px; color: var(--text-muted);
+    margin-top: 6px; display: flex;
+    align-items: center; gap: 6px;
+  }
+  code {
+    background: var(--card-bg-2); padding: 2px 6px;
+    border-radius: 4px; font-size: 12px;
+    font-family: monospace;
+    border: 1px solid var(--border);
+  }
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--card-bg); color: var(--text);
+    padding: 14px 20px; border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    font-size: 14px; font-weight: 500;
+    display: flex; align-items: center; gap: 10px;
+    z-index: 1000; transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    border-left: 4px solid var(--success);
+    max-width: 360px;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.error { border-left-color: var(--danger); }
+  .footer {
+    text-align: center; color: rgba(255,255,255,0.7);
+    font-size: 12px; margin-top: 24px; padding: 16px;
+  }
+  @media (max-width: 640px) {
+    body { padding: 14px 10px; }
+    .card { padding: 20px 16px; border-radius: 16px; }
+    .brand-text h1 { font-size: 18px; }
+    .btn { padding: 11px 16px; font-size: 13px; }
+    .btn-group .btn { flex: 1; min-width: 140px; }
+  }
+  @media print {
+    body { background: white; padding: 0; }
+    .header, .card:not(#outputSection), .toolbar, .btn-group, .footer, .toast { display: none !important; }
+    .card { box-shadow: none; border: none; padding: 0; }
+    .table-wrap { max-height: none; overflow: visible; border: none; }
+    th { background: #6366f1 !important; color: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    thead { position: static; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="brand">
+      <div class="brand-icon">🔐</div>
+      <div class="brand-text">
+        <h1>SOV Data Viewer</h1>
+        <p>Decrypt • View • Export to Excel & PDF</p>
+      </div>
+    </div>
+    <button class="theme-btn" id="themeBtn" title="Toggle dark mode">🌙</button>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="step-num">1</div>
+      <div>
+        <h2>Upload Encrypted File</h2>
+        <p>SOVCSV1 format (.json, .enc, .csv, .txt)</p>
+      </div>
+    </div>
+    <div class="drop-zone" id="dropZone">
+      <span class="drop-icon">📁</span>
+      <div class="drop-text">Click to browse or drag & drop</div>
+      <div class="drop-subtext">SOVCSV1 encrypted file-ஐ இங்கே drop பண்ணுங்க</div>
+      <input type="file" id="encFile" class="file-input" accept=".json,.enc,.csv,.txt,*/*">
+    </div>
+    <div id="fileInfoWrap"></div>
+    <div id="step1Status" class="status"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="step-num">2</div>
+      <div>
+        <h2>Decrypt</h2>
+        <p>CSV_ENCRYPTION_KEY-ஐ கொடுத்து decrypt பண்ணுங்க</p>
+      </div>
+    </div>
+    <div class="input-group">
+      <label>🔑 CSV_ENCRYPTION_KEY</label>
+      <input type="password" id="decKey" placeholder="Server-ல இருக்கிற exact value-ஐ paste பண்ணுங்க">
+      <div class="hint">
+        <span>ℹ️</span>
+        <span>Environment variable <code>CSV_ENCRYPTION_KEY</code>-ஓட exact value. SHA-256 hash மூலம் 256-bit key derive ஆகும்.</span>
+      </div>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-success" id="decryptBtn" disabled>
+        <span>🔓</span> Decrypt & Show Data
+      </button>
+      <button class="btn btn-secondary" id="resetBtn">
+        <span>🔄</span> Reset
+      </button>
+    </div>
+    <div id="step2Status" class="status"></div>
+  </div>
+
+  <div class="card" id="outputSection" style="display:none;">
+    <div class="card-header">
+      <div class="step-num">3</div>
+      <div>
+        <h2>Decrypted Data</h2>
+        <p id="dataSubtitle">Table view with export options</p>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-label">Total Rows</div>
+        <div class="stat-value" id="statRows">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Columns</div>
+        <div class="stat-value" id="statCols">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Data Size</div>
+        <div class="stat-value text" id="statSize">0 KB</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Decrypt Time</div>
+        <div class="stat-value text" id="statTime">0 ms</div>
+      </div>
+    </div>
+    <div class="btn-group" style="margin-bottom:16px;">
+      <button class="btn btn-excel" id="downloadExcel"><span>📊</span> Download Excel</button>
+      <button class="btn btn-pdf" id="downloadPdf"><span>📄</span> Download PDF</button>
+      <button class="btn btn-copy" id="copyData"><span>📋</span> Copy Data</button>
+      <button class="btn btn-secondary" id="printBtn"><span>🖨️</span> Print</button>
+    </div>
+    <div class="toolbar">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="search" id="searchInput" placeholder="Search in table...">
+      </div>
+    </div>
+    <div id="cryptoMeta" style="margin-bottom:12px;font-size:12px;color:var(--text-muted);"></div>
+    <div class="table-wrap">
+      <table id="dataTable">
+        <thead></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" id="emptyState">
+    <div class="empty-state">
+      <div class="icon">📊</div>
+      <h3>No Data Yet</h3>
+      <p>Encrypted file upload பண்ணி, key கொடுத்து decrypt பண்ணுங்க</p>
+    </div>
+  </div>
+
+  <div class="footer">🔒 AES-256-GCM • SHA-256 KDF • All processing in browser</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let parsedFile = null;
+let decryptedRows = [];
+let decryptedText = '';
+let decryptTimeMs = 0;
+let fileInfo = null;
+const $ = id => document.getElementById(id);
+
+// Theme
+const themeBtn = $('themeBtn');
+const savedTheme = localStorage.getItem('theme') || 'light';
+document.documentElement.setAttribute('data-theme', savedTheme);
+themeBtn.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+themeBtn.addEventListener('click', () => {
+  const current = document.documentElement.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  themeBtn.textContent = next === 'dark' ? '☀️' : '🌙';
+  localStorage.setItem('theme', next);
+});
+
+function showToast(msg, type = 'success', duration = 3000) {
+  const toast = $('toast');
+  toast.textContent = msg;
+  toast.className = 'toast show ' + type;
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => toast.className = 'toast ' + type, duration);
+}
+
+function showStatus(el, msg, type = 'info', isLoading = false) {
+  el.innerHTML = (isLoading ? '<span class="loader"></span>' : '') + msg;
+  el.className = 'status show ' + type;
+}
+
+function b64ToBytes(b64) {
+  const clean = b64.replace(/\s/g, '');
+  const bin = atob(clean);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+function formatBytes(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+}
+
+async function deriveKey(password) {
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.digest('SHA-256', enc.encode(password));
+  return crypto.subtle.importKey('raw', keyMaterial, { name: 'AES-GCM' }, false, ['decrypt']);
+}
+
+async function decryptSOVCSV1(text, password) {
+  const parts = text.split(':');
+  if (parts.length !== 4 || parts[0] !== 'SOVCSV1') throw new Error('Not a valid SOVCSV1 format.');
+  const iv = b64ToBytes(parts[1]);
+  const authTag = b64ToBytes(parts[2]);
+  const ciphertext = b64ToBytes(parts[3]);
+  const combined = new Uint8Array(ciphertext.length + authTag.length);
+  combined.set(ciphertext, 0);
+  combined.set(authTag, ciphertext.length);
+  const key = await deriveKey(password);
+  const plainBuf = await crypto.subtle.decrypt({ name: 'AES-GCM', iv, tagLength: 128 }, key, combined);
+  return new TextDecoder('utf-8').decode(plainBuf);
+}
+
+function parseCSV(text) {
+  const rows = [];
+  let cur = '', row = [], inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i], nx = text[i+1];
+    if (inQ) {
+      if (ch === '"' && nx === '"') { cur += '"'; i++; }
+      else if (ch === '"') inQ = false;
+      else cur += ch;
+    } else {
+      if (ch === '"') inQ = true;
+      else if (ch === ',') { row.push(cur); cur = ''; }
+      else if (ch === '\n') { row.push(cur); rows.push(row); row = []; cur = ''; }
+      else if (ch === '\r') {}
+      else cur += ch;
+    }
+  }
+  if (cur !== '' || row.length) { row.push(cur); rows.push(row); }
+  return rows.filter(r => r.some(c => c.trim() !== ''));
+}
+
+// Drag & Drop
+const dropZone = $('dropZone');
+const encFile = $('encFile');
+dropZone.addEventListener('click', () => encFile.click());
+dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) { encFile.files = e.dataTransfer.files; handleFile(e.dataTransfer.files[0]); }
+});
+encFile.addEventListener('change', (e) => { if (e.target.files.length) handleFile(e.target.files[0]); });
+
+async function handleFile(file) {
+  const status = $('step1Status');
+  parsedFile = null;
+  decryptedRows = [];
+  decryptedText = '';
+  fileInfo = null;
+  $('outputSection').style.display = 'none';
+  $('emptyState').style.display = 'block';
+  $('fileInfoWrap').innerHTML = '';
+  $('step2Status').className = 'status';
+  if (!file) return;
+
+  $('fileInfoWrap').innerHTML = `
+    <div class="file-selected">
+      <div class="icon">📄</div>
+      <div class="info">
+        <div class="name">${escapeHtml(file.name)}</div>
+        <div class="meta">${formatBytes(file.size)} • ${file.type || 'unknown'}</div>
+      </div>
+      <button class="file-remove" title="Remove" onclick="resetFile()">✕</button>
+    </div>`;
+
+  try {
+    const text = (await file.text()).trim();
+    if (text.startsWith('SOVCSV1:')) {
+      const parts = text.split(':');
+      if (parts.length !== 4) throw new Error('SOVCSV1 format invalid — ' + parts.length + ' parts');
+      const ivB = b64ToBytes(parts[1]);
+      const tagB = b64ToBytes(parts[2]);
+      const ctB = b64ToBytes(parts[3]);
+      fileInfo = { name: file.name, size: file.size };
+      parsedFile = text;
+      showStatus(status, `✅ File ready — SOVCSV1 format\nIV: ${ivB.length}B • Auth Tag: ${tagB.length}B • Ciphertext: ${ctB.length}B`, 'success');
+    } else if (text.startsWith('{')) {
+      const obj = JSON.parse(text);
+      if (obj.iv && (obj.ciphertext || obj.cipher)) {
+        fileInfo = { name: file.name, size: file.size };
+        parsedFile = 'JSON:' + text;
+        showStatus(status, '✅ JSON envelope format ready', 'success');
+      } else throw new Error('JSON-ல iv/ciphertext இல்ல');
+    } else {
+      throw new Error('File format unrecognized.');
+    }
+    updateButtons();
+  } catch (err) {
+    showStatus(status, '❌ ' + err.message, 'error');
+    $('fileInfoWrap').innerHTML = '';
+    updateButtons();
+  }
+}
+
+function resetFile() {
+  encFile.value = '';
+  parsedFile = null;
+  fileInfo = null;
+  decryptedRows = [];
+  decryptedText = '';
+  $('fileInfoWrap').innerHTML = '';
+  $('step1Status').className = 'status';
+  $('step2Status').className = 'status';
+  $('outputSection').style.display = 'none';
+  $('emptyState').style.display = 'block';
+  updateButtons();
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+$('decKey').addEventListener('input', updateButtons);
+$('decKey').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !$('decryptBtn').disabled) $('decryptBtn').click();
+});
+
+function updateButtons() {
+  $('decryptBtn').disabled = !(parsedFile && $('decKey').value.length > 0);
+}
+
+$('resetBtn').addEventListener('click', () => {
+  resetFile();
+  $('decKey').value = '';
+  showToast('Reset ஆனது', 'info');
+});
+
+$('decryptBtn').addEventListener('click', async () => {
+  const status = $('step2Status');
+  const password = $('decKey').value;
+  if (!parsedFile) { showStatus(status, '❌ முதலில் file upload பண்ணுங்க', 'error'); return; }
+  if (!password) { showStatus(status, '❌ Key enter பண்ணுங்க', 'error'); return; }
+
+  $('decryptBtn').disabled = true;
+  showStatus(status, 'Decrypting...', 'loading', true);
+
+  try {
+    const start = performance.now();
+    let plainText;
+    if (parsedFile.startsWith('JSON:')) {
+      const obj = JSON.parse(parsedFile.slice(5));
+      const iv = b64ToBytes(obj.iv);
+      const ciphertext = b64ToBytes(obj.ciphertext || obj.cipher);
+      const authTag = obj.authTag ? b64ToBytes(obj.authTag) : null;
+      let combined;
+      if (authTag) {
+        combined = new Uint8
