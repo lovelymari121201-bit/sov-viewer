@@ -20,7 +20,6 @@
     --danger: #ef4444;
     --warning: #f59e0b;
     --info: #3b82f6;
-    --shadow: 0 4px 20px rgba(0,0,0,0.08);
     --shadow-lg: 0 20px 60px rgba(0,0,0,0.15);
   }
   [data-theme="dark"] {
@@ -43,7 +42,6 @@
     background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #4c1d95 100%);
   }
   .container { max-width: 1400px; margin: 0 auto; }
-
   .header {
     display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
@@ -57,7 +55,7 @@
     display: flex; align-items: center; justify-content: center;
     font-size: 26px; backdrop-filter: blur(10px);
   }
-  .brand-text h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+  .brand-text h1 { font-size: 22px; font-weight: 700; }
   .brand-text p { font-size: 12px; opacity: 0.85; margin-top: 2px; }
   .theme-btn {
     background: rgba(255,255,255,0.15);
@@ -219,6 +217,33 @@
     margin-right: 8px; vertical-align: middle;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Format selector */
+  .format-toggle {
+    display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
+    background: var(--card-bg-2);
+    padding: 4px;
+    border-radius: 10px;
+    border: 2px solid var(--border);
+  }
+  .format-toggle button {
+    flex: 1; padding: 10px 16px;
+    background: transparent;
+    border: none;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: all 0.2s;
+    font-family: inherit;
+    min-width: 120px;
+  }
+  .format-toggle button.active {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  }
 
   .stats {
     display: grid;
@@ -441,6 +466,8 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .modal-close {
     background: var(--card-bg-2);
@@ -454,6 +481,7 @@
     align-items: center;
     justify-content: center;
     transition: all 0.2s;
+    flex-shrink: 0;
   }
   .modal-close:hover {
     background: var(--danger);
@@ -576,7 +604,7 @@
       <div class="brand-icon">🔐</div>
       <div class="brand-text">
         <h1>SOV Data Viewer</h1>
-        <p>Decrypt • Filter by Date/Month/Year • Search • JSON View</p>
+        <p>Decrypt • CSV/JSON • Filter by Date/Month/Year</p>
       </div>
     </div>
     <button class="theme-btn" id="themeBtn" title="Toggle dark mode">🌙</button>
@@ -634,6 +662,15 @@
         <h2>Decrypted Data</h2>
         <p id="dataSubtitle">Filter & search பண்ணி data பாருங்க</p>
       </div>
+    </div>
+
+    <!-- Format info banner -->
+    <div id="formatBanner" style="margin-bottom:16px;padding:12px 16px;border-radius:10px;background:linear-gradient(135deg,rgba(99,102,241,0.1),rgba(118,75,162,0.05));border-left:4px solid var(--primary);font-size:13px;color:var(--text);"></div>
+
+    <!-- Format toggle for JSON entity view -->
+    <div class="format-toggle" id="formatToggle" style="display:none;">
+      <button data-view="table" class="active">📋 Table View</button>
+      <button data-view="raw">📄 Raw JSON</button>
     </div>
 
     <div class="stats">
@@ -721,11 +758,15 @@
 
     <div id="cryptoMeta" style="margin-bottom:12px;font-size:12px;color:var(--text-muted);"></div>
 
-    <div class="table-wrap">
+    <div class="table-wrap" id="tableWrap">
       <table id="dataTable">
         <thead></thead>
         <tbody></tbody>
       </table>
+    </div>
+
+    <div id="rawJsonWrap" style="display:none;">
+      <pre id="rawJsonContent" style="font-family:monospace;font-size:12px;line-height:1.6;background:var(--card-bg-2);padding:16px;border-radius:12px;border:1px solid var(--border);max-height:600px;overflow:auto;white-space:pre-wrap;word-break:break-word;"></pre>
     </div>
   </div>
 
@@ -740,7 +781,6 @@
   <div class="footer">🔒 AES-256-GCM • SHA-256 KDF • All processing in browser</div>
 </div>
 
-<!-- Modal for JSON view -->
 <div class="modal-overlay" id="jsonModal">
   <div class="modal">
     <div class="modal-header">
@@ -763,12 +803,15 @@ let parsedFile = null;
 let headers = [];
 let dataRows = [];
 let dateColumnIndex = -1;
-let jsonColumns = new Set(); // Indices of columns containing JSON
+let jsonColumns = new Set();
 let decryptTimeMs = 0;
 let fileInfo = null;
 let sortColumn = -1;
 let sortDirection = 'asc';
 let currentModalData = null;
+let rawDecryptedText = '';
+let detectedFormat = '';       // 'CSV' or 'JSON'
+let currentView = 'table';     // 'table' or 'raw'
 
 const $ = id => document.getElementById(id);
 
@@ -868,6 +911,130 @@ function parseCSV(text) {
   return rows.filter(r => r.some(c => c.trim() !== ''));
 }
 
+// ===================== JSON → Flat Table =====================
+// Convert nested JSON object (like {version, updatedAt, entities:{key:[records]}})
+// into flat rows/columns for table display
+function flattenJSONToTable(obj) {
+  // Strategy 1: If top-level has 'entities' object with arrays
+  if (obj && typeof obj === 'object' && obj.entities && typeof obj.entities === 'object') {
+    return flattenEntities(obj.entities, obj);
+  }
+
+  // Strategy 2: If it's an array of objects
+  if (Array.isArray(obj)) {
+    return flattenArray(obj);
+  }
+
+  // Strategy 3: Single object — convert to key-value table
+  if (obj && typeof obj === 'object') {
+    return flattenObject(obj);
+  }
+
+  // Strategy 4: Primitive
+  return {
+    headers: ['value'],
+    rows: [[String(obj)]]
+  };
+}
+
+// Flatten {entities: {key1: [...], key2: [...]}} into one big table
+function flattenEntities(entities, meta) {
+  // Collect all unique keys from all records across all entities
+  const allKeys = new Set(['_entity']);
+  const allRows = [];
+
+  for (const entityName of Object.keys(entities)) {
+    const records = entities[entityName];
+    if (!Array.isArray(records)) continue;
+
+    for (const record of records) {
+      if (!record || typeof record !== 'object') continue;
+      const flat = { _entity: entityName };
+      flattenObjectInto(record, flat, '');
+      Object.keys(flat).forEach(k => allKeys.add(k));
+      allRows.push(flat);
+    }
+  }
+
+  const headers = [...allKeys];
+  const rows = allRows.map(row => headers.map(h => {
+    const v = row[h];
+    if (v === undefined || v === null) return '';
+    if (typeof v === 'object') return JSON.stringify(v);
+    return String(v);
+  }));
+
+  return { headers, rows, meta };
+}
+
+// Flatten array of objects
+function flattenArray(arr) {
+  const allKeys = new Set();
+  const flatRows = [];
+  for (const item of arr) {
+    if (item && typeof item === 'object' && !Array.isArray(item)) {
+      const flat = {};
+      flattenObjectInto(item, flat, '');
+      flatRows.push(flat);
+      Object.keys(flat).forEach(k => allKeys.add(k));
+    } else {
+      const flat = { value: typeof item === 'object' ? JSON.stringify(item) : String(item) };
+      flatRows.push(flat);
+      allKeys.add('value');
+    }
+  }
+  const headers = [...allKeys];
+  const rows = flatRows.map(row => headers.map(h => {
+    const v = row[h];
+    if (v === undefined || v === null) return '';
+    if (typeof v === 'object') return JSON.stringify(v);
+    return String(v);
+  }));
+  return { headers, rows };
+}
+
+// Flatten single object
+function flattenObject(obj) {
+  const flat = {};
+  flattenObjectInto(obj, flat, '');
+  const headers = Object.keys(flat);
+  const row = headers.map(h => {
+    const v = flat[h];
+    if (v === undefined || v === null) return '';
+    if (typeof v === 'object') return JSON.stringify(v);
+    return String(v);
+  });
+  return { headers, rows: [row] };
+}
+
+// Recursive flattener: {a:{b:1}} → {'a.b': 1}
+function flattenObjectInto(obj, out, prefix) {
+  if (obj === null || obj === undefined) {
+    out[prefix] = '';
+    return;
+  }
+  if (typeof obj !== 'object') {
+    out[prefix] = obj;
+    return;
+  }
+  if (Array.isArray(obj)) {
+    // Keep arrays as JSON strings (don't flatten deeply, too many columns)
+    out[prefix] = JSON.stringify(obj);
+    return;
+  }
+  for (const key of Object.keys(obj)) {
+    const value = obj[key];
+    const newKey = prefix ? `${prefix}.${key}` : key;
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      flattenObjectInto(value, out, newKey);
+    } else if (Array.isArray(value)) {
+      out[newKey] = JSON.stringify(value);
+    } else {
+      out[newKey] = value === null || value === undefined ? '' : value;
+    }
+  }
+}
+
 // ===================== Date helpers =====================
 function parseDate(value) {
   if (!value) return null;
@@ -913,7 +1080,7 @@ function getFY(d) {
 }
 
 function detectDateColumn(headerRow) {
-  const dateHeaderPatterns = [
+  const patterns = [
     /^date$/i, /^dt$/i, /^day$/i,
     /date$/i, /_date$/i, /date_/i,
     /^(created|updated|entry|work|attendance|request|start|end|ot|power|payment|advance|po|invoice|dc)_?at$/i,
@@ -922,7 +1089,7 @@ function detectDateColumn(headerRow) {
   ];
   for (let i = 0; i < headerRow.length; i++) {
     const h = String(headerRow[i]).trim();
-    if (dateHeaderPatterns.some(p => p.test(h))) return i;
+    if (patterns.some(p => p.test(h))) return i;
   }
   return -1;
 }
@@ -932,102 +1099,63 @@ function getRowDate(row) {
   return parseDate(row[dateColumnIndex]);
 }
 
-// ===================== JSON Detection & Formatting =====================
+// ===================== JSON Detection =====================
 function looksLikeJSON(value) {
   if (!value) return false;
   const s = String(value).trim();
   if (s.length < 2) return false;
   if (!((s.startsWith('{') && s.endsWith('}')) || (s.startsWith('[') && s.endsWith(']')))) return false;
-  try {
-    JSON.parse(s);
-    return true;
-  } catch {
-    return false;
-  }
+  try { JSON.parse(s); return true; } catch { return false; }
 }
 
 function detectJSONColumns(headerRow, dataRows) {
   const jsonCols = new Set();
-  // Sample first 50 rows or all rows (whichever is less)
   const sample = dataRows.slice(0, Math.min(50, dataRows.length));
   for (let i = 0; i < headerRow.length; i++) {
-    let jsonCount = 0;
-    let nonEmptyCount = 0;
+    let jsonCount = 0, nonEmpty = 0;
     for (const row of sample) {
       const v = row[i];
       if (v && String(v).trim()) {
-        nonEmptyCount++;
+        nonEmpty++;
         if (looksLikeJSON(v)) jsonCount++;
       }
     }
-    // If 80%+ of non-empty values look like JSON, mark as JSON column
-    if (nonEmptyCount > 0 && jsonCount / nonEmptyCount >= 0.8) {
-      jsonCols.add(i);
-    }
+    if (nonEmpty > 0 && jsonCount / nonEmpty >= 0.8) jsonCols.add(i);
   }
   return jsonCols;
 }
 
-// Format JSON value into readable text (for search/display)
 function jsonToReadable(value) {
   if (!value) return '';
   try {
-    const obj = JSON.parse(value);
-    return extractText(obj);
-  } catch {
-    return String(value);
-  }
+    return extractText(JSON.parse(value));
+  } catch { return String(value); }
 }
 
 function extractText(obj, maxDepth = 5, depth = 0) {
   if (depth > maxDepth) return '...';
   if (obj === null || obj === undefined) return '';
-  if (typeof obj === 'string' || typeof obj === 'number' || typeof obj === 'boolean') {
-    return String(obj);
-  }
-  if (Array.isArray(obj)) {
-    return obj.map(x => extractText(x, maxDepth, depth + 1)).filter(Boolean).join(' ');
-  }
-  if (typeof obj === 'object') {
-    return Object.values(obj).map(x => extractText(x, maxDepth, depth + 1)).filter(Boolean).join(' ');
-  }
+  if (typeof obj === 'string' || typeof obj === 'number' || typeof obj === 'boolean') return String(obj);
+  if (Array.isArray(obj)) return obj.map(x => extractText(x, maxDepth, depth + 1)).filter(Boolean).join(' ');
+  if (typeof obj === 'object') return Object.values(obj).map(x => extractText(x, maxDepth, depth + 1)).filter(Boolean).join(' ');
   return String(obj);
 }
 
-// Build JSON tree HTML (collapsible)
-function buildJSONTree(obj, keyName = null, level = 0) {
-  const indent = '  '.repeat(level);
-  
+function buildJSONTree(obj, level = 0) {
   if (obj === null) return `<span class="null">null</span>`;
   if (obj === undefined) return `<span class="null">undefined</span>`;
-  
-  if (typeof obj === 'string') {
-    return `<span class="str">"${escapeHtml(obj)}"</span>`;
-  }
-  if (typeof obj === 'number') {
-    return `<span class="num">${obj}</span>`;
-  }
-  if (typeof obj === 'boolean') {
-    return `<span class="bool">${obj}</span>`;
-  }
-  
+  if (typeof obj === 'string') return `<span class="str">"${escapeHtml(obj)}"</span>`;
+  if (typeof obj === 'number') return `<span class="num">${obj}</span>`;
+  if (typeof obj === 'boolean') return `<span class="bool">${obj}</span>`;
   if (Array.isArray(obj)) {
-    if (obj.length === 0) return `<span style="color:var(--text-muted)">[]</span>`;
-    const items = obj.map((item, i) => 
-      `<li><span class="key">[${i}]</span>: ${buildJSONTree(item, null, level + 1)}</li>`
-    ).join('');
-    return `<ul>${items}</ul>`;
+    if (!obj.length) return `<span style="color:var(--text-muted)">[]</span>`;
+    return `<ul>${obj.map((item, i) => `<li><span class="key">[${i}]</span>: ${buildJSONTree(item, level+1)}</li>`).join('')}</ul>`;
   }
-  
   if (typeof obj === 'object') {
     const keys = Object.keys(obj);
-    if (keys.length === 0) return `<span style="color:var(--text-muted)">{}</span>`;
-    const items = keys.map(k => 
-      `<li><span class="key">"${escapeHtml(k)}"</span>: ${buildJSONTree(obj[k], k, level + 1)}</li>`
-    ).join('');
-    return `<ul>${items}</ul>`;
+    if (!keys.length) return `<span style="color:var(--text-muted)">{}</span>`;
+    return `<ul>${keys.map(k => `<li><span class="key">"${escapeHtml(k)}"</span>: ${buildJSONTree(obj[k], level+1)}</li>`).join('')}</ul>`;
   }
-  
   return escapeHtml(String(obj));
 }
 
@@ -1035,14 +1163,12 @@ function buildJSONTree(obj, keyName = null, level = 0) {
 function openJSONModal(title, jsonText) {
   $('modalTitle').textContent = title;
   const body = $('modalBody');
-  
   try {
     const obj = JSON.parse(jsonText);
     body.innerHTML = `<div class="json-tree">${buildJSONTree(obj)}</div>`;
   } catch {
     body.innerHTML = `<pre>${escapeHtml(jsonText)}</pre>`;
   }
-  
   currentModalData = jsonText;
   $('jsonModal').classList.add('show');
 }
@@ -1054,26 +1180,18 @@ function closeModal() {
 
 $('modalClose').addEventListener('click', closeModal);
 $('modalCloseBtn').addEventListener('click', closeModal);
-$('jsonModal').addEventListener('click', (e) => {
-  if (e.target === $('jsonModal')) closeModal();
-});
+$('jsonModal').addEventListener('click', (e) => { if (e.target === $('jsonModal')) closeModal(); });
 
 $('modalCopyBtn').addEventListener('click', async () => {
   if (!currentModalData) return;
   try {
-    // Copy pretty formatted
     let toCopy = currentModalData;
-    try {
-      toCopy = JSON.stringify(JSON.parse(currentModalData), null, 2);
-    } catch {}
+    try { toCopy = JSON.stringify(JSON.parse(currentModalData), null, 2); } catch {}
     await navigator.clipboard.writeText(toCopy);
     showToast('📋 JSON copied!');
-  } catch (err) {
-    showToast('Copy fail: ' + err.message, 'error');
-  }
+  } catch (err) { showToast('Copy fail: ' + err.message, 'error'); }
 });
 
-// ESC to close modal
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && $('jsonModal').classList.contains('show')) closeModal();
 });
@@ -1083,22 +1201,14 @@ const dropZone = $('dropZone');
 const encFile = $('encFile');
 
 dropZone.addEventListener('click', () => encFile.click());
-dropZone.addEventListener('dragover', (e) => {
-  e.preventDefault();
-  dropZone.classList.add('dragover');
-});
+dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
 dropZone.addEventListener('drop', (e) => {
   e.preventDefault();
   dropZone.classList.remove('dragover');
-  if (e.dataTransfer.files.length) {
-    encFile.files = e.dataTransfer.files;
-    handleFile(e.dataTransfer.files[0]);
-  }
+  if (e.dataTransfer.files.length) { encFile.files = e.dataTransfer.files; handleFile(e.dataTransfer.files[0]); }
 });
-encFile.addEventListener('change', (e) => {
-  if (e.target.files.length) handleFile(e.target.files[0]);
-});
+encFile.addEventListener('change', (e) => { if (e.target.files.length) handleFile(e.target.files[0]); });
 
 async function handleFile(file) {
   const status = $('step1Status');
@@ -1106,7 +1216,6 @@ async function handleFile(file) {
   $('fileInfoWrap').innerHTML = '';
   $('step2Status').className = 'status';
   $('step1Status').className = 'status';
-
   if (!file) return;
 
   $('fileInfoWrap').innerHTML = `
@@ -1121,35 +1230,25 @@ async function handleFile(file) {
 
   try {
     const text = (await file.text()).trim();
-
     if (text.startsWith('SOVCSV1:')) {
       const parts = text.split(':');
-      if (parts.length !== 4) throw new Error('SOVCSV1 format invalid — ' + parts.length + ' parts (4 expected)');
-      const ivBytes = b64ToBytes(parts[1]);
-      const tagBytes = b64ToBytes(parts[2]);
-      const ctBytes = b64ToBytes(parts[3]);
-
+      if (parts.length !== 4) throw new Error('SOVCSV1 format invalid — ' + parts.length + ' parts');
+      const ivB = b64ToBytes(parts[1]);
+      const tagB = b64ToBytes(parts[2]);
+      const ctB = b64ToBytes(parts[3]);
       fileInfo = { name: file.name, size: file.size };
       parsedFile = text;
-      showStatus(status,
-        `✅ File ready — SOVCSV1 format\n` +
-        `IV: ${ivBytes.length}B • Auth Tag: ${tagBytes.length}B • Ciphertext: ${ctBytes.length}B`,
-        'success');
+      showStatus(status, `✅ File ready — SOVCSV1 format\nIV: ${ivB.length}B • Auth Tag: ${tagB.length}B • Ciphertext: ${ctB.length}B`, 'success');
     } else if (text.startsWith('{')) {
-      try {
-        const obj = JSON.parse(text);
-        if (obj.iv && (obj.ciphertext || obj.cipher)) {
-          fileInfo = { name: file.name, size: file.size };
-          parsedFile = 'JSON:' + text;
-          showStatus(status, '✅ JSON envelope format ready', 'success');
-        } else throw new Error('JSON-ல iv/ciphertext இல்ல');
-      } catch (je) {
-        throw new Error('File format unrecognized. SOVCSV1 format-ஆ இருக்கணும்.');
-      }
+      const obj = JSON.parse(text);
+      if (obj.iv && (obj.ciphertext || obj.cipher)) {
+        fileInfo = { name: file.name, size: file.size };
+        parsedFile = 'JSON:' + text;
+        showStatus(status, '✅ JSON envelope format ready', 'success');
+      } else throw new Error('JSON-ல iv/ciphertext இல்ல');
     } else {
       throw new Error('File format unrecognized. SOVCSV1 format-ஆ இருக்கணும்.');
     }
-
     updateButtons();
   } catch (err) {
     showStatus(status, '❌ ' + err.message, 'error');
@@ -1177,8 +1276,14 @@ function resetData() {
   decryptTimeMs = 0;
   sortColumn = -1;
   sortDirection = 'asc';
+  rawDecryptedText = '';
+  detectedFormat = '';
+  currentView = 'table';
   $('outputSection').style.display = 'none';
   $('emptyState').style.display = 'block';
+  $('formatToggle').style.display = 'none';
+  $('rawJsonWrap').style.display = 'none';
+  $('tableWrap').style.display = 'block';
   $('filterDate').value = '';
   $('filterMonth').value = '';
   $('filterYear').value = '';
@@ -1210,7 +1315,6 @@ $('resetBtn').addEventListener('click', () => {
 $('decryptBtn').addEventListener('click', async () => {
   const status = $('step2Status');
   const password = $('decKey').value;
-
   if (!parsedFile) { showStatus(status, '❌ முதலில் file upload பண்ணுங்க', 'error'); return; }
   if (!password) { showStatus(status, '❌ CSV_ENCRYPTION_KEY enter பண்ணுங்க', 'error'); return; }
 
@@ -1231,9 +1335,7 @@ $('decryptBtn').addEventListener('click', async () => {
         combined = new Uint8Array(ciphertext.length + authTag.length);
         combined.set(ciphertext, 0);
         combined.set(authTag, ciphertext.length);
-      } else {
-        combined = ciphertext;
-      }
+      } else combined = ciphertext;
       const key = await deriveKey(password);
       const plainBuf = await crypto.subtle.decrypt({ name: 'AES-GCM', iv, tagLength: 128 }, key, combined);
       plainText = new TextDecoder().decode(plainBuf);
@@ -1242,39 +1344,90 @@ $('decryptBtn').addEventListener('click', async () => {
     }
 
     decryptTimeMs = performance.now() - start;
+    rawDecryptedText = plainText;
 
-    const rows = parseCSV(plainText);
-    if (rows.length > 0 && rows[0].length > 1) {
-      headers = rows[0];
-      dataRows = rows.slice(1);
+    // ============ Try JSON parse FIRST ============
+    let jsonObj = null;
+    const trimmed = plainText.trim();
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+      try {
+        jsonObj = JSON.parse(trimmed);
+      } catch (e) {
+        console.warn('JSON parse attempt failed:', e.message);
+      }
+    }
+
+    if (jsonObj !== null) {
+      // JSON detected - flatten to table
+      detectedFormat = Array.isArray(jsonObj) ? 'JSON Array' : 'JSON Object';
+      const flattened = flattenJSONToTable(jsonObj);
+      headers = flattened.headers;
+      dataRows = flattened.rows;
       dateColumnIndex = detectDateColumn(headers);
       jsonColumns = detectJSONColumns(headers, dataRows);
-
-      setupFilters();
-      renderTable();
-      updateStats();
-
-      const dateInfo = dateColumnIndex >= 0
-        ? ` | 📅 Date: "${headers[dateColumnIndex]}"`
-        : ' | ⚠️ Date column detect ஆகல';
-      const jsonInfo = jsonColumns.size > 0
-        ? ` | 📋 ${jsonColumns.size} JSON column(s)`
+      
+      // Enable "Raw JSON" view for JSON files
+      $('formatToggle').style.display = 'flex';
+      $('rawJsonContent').textContent = JSON.stringify(jsonObj, null, 2);
+      
+      const statsInfo = jsonObj.entities
+        ? ` | Entities: ${Object.keys(jsonObj.entities).length}`
         : '';
-
+      const dateInfo = dateColumnIndex >= 0 ? ` | 📅 Date: "${headers[dateColumnIndex]}"` : '';
+      const jsonInfo = jsonColumns.size > 0 ? ` | 📋 ${jsonColumns.size} JSON column(s)` : '';
+      
       showStatus(status,
-        `✅ Decrypt ஆனது — ${dataRows.length} rows, ${headers.length} columns (${decryptTimeMs.toFixed(2)}ms)${dateInfo}${jsonInfo}`,
+        `✅ Decrypt ஆனது — ${detectedFormat} (${dataRows.length} rows, ${headers.length} columns) (${decryptTimeMs.toFixed(2)}ms)${statsInfo}${dateInfo}${jsonInfo}`,
         'success');
       showToast(`✅ ${dataRows.length} rows decrypt ஆனது!`);
-
-      $('cryptoMeta').innerHTML =
-        `🔒 <strong>AES-256-GCM</strong> • SHA-256 KDF • IV 12B • Auth Tag 16B • Decrypt: ${decryptTimeMs.toFixed(2)}ms`;
-      $('dataSubtitle').textContent = fileInfo?.name || 'Decrypted data';
-
-      $('outputSection').style.display = 'block';
-      $('emptyState').style.display = 'none';
+      $('formatBanner').innerHTML = `📋 <strong>Detected format: ${detectedFormat}</strong> — Table-ல flattened data காட்டப்படுகிறது. Raw JSON view-க்கு switch பண்ணலாம்.`;
     } else {
-      throw new Error('CSV format-ல data இல்ல அல்லது single column மட்டும்');
+      // CSV
+      const rows = parseCSV(plainText);
+      if (rows.length > 0 && rows[0].length > 1) {
+        detectedFormat = 'CSV';
+        headers = rows[0];
+        dataRows = rows.slice(1);
+        dateColumnIndex = detectDateColumn(headers);
+        jsonColumns = detectJSONColumns(headers, dataRows);
+        
+        $('formatToggle').style.display = 'none';
+        
+        const dateInfo = dateColumnIndex >= 0 ? ` | 📅 Date: "${headers[dateColumnIndex]}"` : '';
+        const jsonInfo = jsonColumns.size > 0 ? ` | 📋 ${jsonColumns.size} JSON column(s)` : '';
+        
+        showStatus(status,
+          `✅ Decrypt ஆனது — CSV (${dataRows.length} rows, ${headers.length} columns) (${decryptTimeMs.toFixed(2)}ms)${dateInfo}${jsonInfo}`,
+          'success');
+        showToast(`✅ ${dataRows.length} rows decrypt ஆனது!`);
+        $('formatBanner').innerHTML = `📊 <strong>Detected format: CSV</strong> — ${dataRows.length} rows loaded.`;
+      } else if (rows.length === 1 && rows[0].length === 1) {
+        // Single cell - show as single column
+        detectedFormat = 'Single Value';
+        headers = ['value'];
+        dataRows = [[rows[0][0]]];
+        dateColumnIndex = -1;
+        jsonColumns = new Set();
+        
+        $('formatToggle').style.display = 'none';
+        
+        showStatus(status, `✅ Decrypt ஆனது — Single value (${decryptTimeMs.toFixed(2)}ms)`, 'success');
+        $('formatBanner').innerHTML = `📄 <strong>Single value</strong> — content-ல ஒரே cell மட்டும் இருக்கு.`;
+      } else {
+        throw new Error('Decrypt ஆனது, ஆனா content CSV-ஆவோ JSON-ஆவோ parse ஆகல. Console-ல debug பண்ணுங்க.');
+      }
     }
+
+    setupFilters();
+    renderTable();
+    updateStats();
+
+    $('cryptoMeta').innerHTML =
+      `🔒 <strong>AES-256-GCM</strong> • SHA-256 KDF • IV 12B • Auth Tag 16B • Decrypt: ${decryptTimeMs.toFixed(2)}ms`;
+    $('dataSubtitle').textContent = fileInfo?.name || 'Decrypted data';
+
+    $('outputSection').style.display = 'block';
+    $('emptyState').style.display = 'none';
   } catch (err) {
     showStatus(status,
       '❌ Decrypt fail — CSV_ENCRYPTION_KEY தப்பா இருக்கலாம் அல்லது file corrupt.\n' +
@@ -1288,11 +1441,29 @@ $('decryptBtn').addEventListener('click', async () => {
   }
 });
 
+// ===================== Format Toggle (Table vs Raw JSON) =====================
+$('formatToggle').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-view]');
+  if (!btn) return;
+  const view = btn.dataset.view;
+  currentView = view;
+
+  $('formatToggle').querySelectorAll('button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  if (view === 'raw') {
+    $('tableWrap').style.display = 'none';
+    $('rawJsonWrap').style.display = 'block';
+  } else {
+    $('tableWrap').style.display = 'block';
+    $('rawJsonWrap').style.display = 'none';
+  }
+});
+
 // ===================== Setup Filters =====================
 function setupFilters() {
   const years = new Set();
   const fys = new Set();
-
   dataRows.forEach(row => {
     const d = getRowDate(row);
     if (d) {
@@ -1305,8 +1476,7 @@ function setupFilters() {
   yearSel.innerHTML = '<option value="">All Years</option>';
   [...years].sort((a, b) => b - a).forEach(y => {
     const opt = document.createElement('option');
-    opt.value = y;
-    opt.textContent = y;
+    opt.value = y; opt.textContent = y;
     yearSel.appendChild(opt);
   });
 
@@ -1314,8 +1484,7 @@ function setupFilters() {
   fySel.innerHTML = '<option value="">All FY</option>';
   [...fys].sort().reverse().forEach(fy => {
     const opt = document.createElement('option');
-    opt.value = fy;
-    opt.textContent = `FY ${fy}`;
+    opt.value = fy; opt.textContent = `FY ${fy}`;
     fySel.appendChild(opt);
   });
 }
@@ -1338,29 +1507,24 @@ function getFilteredRows() {
       return d && toDateKey(d) === dateFilter;
     });
   }
-
   if (monthFilter && dateColumnIndex >= 0) {
     filtered = filtered.filter(row => {
       const d = getRowDate(row);
-      if (!d) return false;
-      return String(d.getMonth() + 1).padStart(2, '0') === monthFilter;
+      return d && String(d.getMonth() + 1).padStart(2, '0') === monthFilter;
     });
   }
-
   if (yearFilter && dateColumnIndex >= 0) {
     filtered = filtered.filter(row => {
       const d = getRowDate(row);
       return d && String(d.getFullYear()) === yearFilter;
     });
   }
-
   if (fyFilter && dateColumnIndex >= 0) {
     filtered = filtered.filter(row => {
       const d = getRowDate(row);
       return d && getFY(d) === fyFilter;
     });
   }
-
   if (fromFilter && dateColumnIndex >= 0) {
     const fromDate = new Date(fromFilter + 'T00:00:00');
     filtered = filtered.filter(row => {
@@ -1376,14 +1540,12 @@ function getFilteredRows() {
     });
   }
 
-  // Search - includes JSON readable text
   if (searchQuery) {
     filtered = filtered.filter(row => {
       for (let i = 0; i < row.length; i++) {
         const cell = row[i];
         if (!cell) continue;
         if (String(cell).toLowerCase().includes(searchQuery)) return true;
-        // If JSON column, also search inside parsed content
         if (jsonColumns.has(i) && looksLikeJSON(cell)) {
           const readable = jsonToReadable(cell).toLowerCase();
           if (readable.includes(searchQuery)) return true;
@@ -1395,21 +1557,17 @@ function getFilteredRows() {
 
   if (sortColumn >= 0) {
     filtered = [...filtered].sort((a, b) => {
-      const av = a[sortColumn] ?? '';
-      const bv = b[sortColumn] ?? '';
+      const av = a[sortColumn] ?? '', bv = b[sortColumn] ?? '';
       const an = parseFloat(av), bn = parseFloat(bv);
       if (!isNaN(an) && !isNaN(bn) && String(av).trim() !== '' && String(bv).trim() !== '') {
         return sortDirection === 'asc' ? an - bn : bn - an;
       }
       const ad = parseDate(av), bd = parseDate(bv);
-      if (ad && bd) {
-        return sortDirection === 'asc' ? ad - bd : bd - ad;
-      }
+      if (ad && bd) return sortDirection === 'asc' ? ad - bd : bd - ad;
       const cmp = String(av).localeCompare(String(bv), undefined, { numeric: true });
       return sortDirection === 'asc' ? cmp : -cmp;
     });
   }
-
   return filtered;
 }
 
@@ -1418,10 +1576,7 @@ function updateActiveFiltersUI() {
   const addChip = (label, id) => chips.push({ label, id });
 
   if ($('filterDate').value) addChip(`📅 ${$('filterDate').value}`, 'filterDate');
-  if ($('filterMonth').value) {
-    const monthName = $('filterMonth').selectedOptions[0].textContent;
-    addChip(`📆 ${monthName}`, 'filterMonth');
-  }
+  if ($('filterMonth').value) addChip(`📆 ${$('filterMonth').selectedOptions[0].textContent}`, 'filterMonth');
   if ($('filterYear').value) addChip(`📊 ${$('filterYear').value}`, 'filterYear');
   if ($('filterFY').value) addChip(`🏛️ FY ${$('filterFY').value}`, 'filterFY');
   if ($('filterFrom').value) addChip(`From: ${$('filterFrom').value}`, 'filterFrom');
@@ -1433,17 +1588,13 @@ function updateActiveFiltersUI() {
   chips.forEach(chip => {
     const el = document.createElement('div');
     el.className = 'filter-chip';
-    el.innerHTML = `<span>${escapeHtml(chip.label)}</span><button data-clear="${chip.id}" title="Remove">✕</button>`;
+    el.innerHTML = `<span>${escapeHtml(chip.label)}</span><button data-clear="${chip.id}">✕</button>`;
     wrap.appendChild(el);
   });
 
   const badge = $('filterCountBadge');
-  if (chips.length > 0) {
-    badge.textContent = `${chips.length} active`;
-    badge.style.display = 'inline-block';
-  } else {
-    badge.style.display = 'none';
-  }
+  if (chips.length > 0) { badge.textContent = `${chips.length} active`; badge.style.display = 'inline-block'; }
+  else badge.style.display = 'none';
 
   wrap.querySelectorAll('button[data-clear]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1509,7 +1660,7 @@ function renderTable() {
     const tr = document.createElement('tr');
     const td = document.createElement('td');
     td.colSpan = headers.length + 1;
-    td.innerHTML = '<div class="no-results"><span class="icon">🔍</span>No matching records found. Filters-ஐ adjust பண்ணுங்க.</div>';
+    td.innerHTML = '<div class="no-results"><span class="icon">🔍</span>No matching records found.</div>';
     tr.appendChild(td);
     tbody.appendChild(tr);
     return;
@@ -1526,28 +1677,21 @@ function renderTable() {
     for (let j = 0; j < n; j++) {
       const td = document.createElement('td');
       const value = row[j] !== undefined ? row[j] : '';
-
       if (jsonColumns.has(j) && looksLikeJSON(value)) {
-        // Render JSON preview with button
         const jsonCell = document.createElement('div');
         jsonCell.className = 'json-cell';
-        
         const preview = document.createElement('span');
         preview.className = 'json-preview';
         const readable = jsonToReadable(value);
         preview.textContent = readable.slice(0, 80) + (readable.length > 80 ? '...' : '');
         preview.title = value;
-        
         const btn = document.createElement('button');
         btn.className = 'json-btn';
         btn.textContent = '🔍 View';
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
-          const headerName = headers[j].trim();
-          const rowId = row[0] || `Row ${idx + 1}`;
-          openJSONModal(`${headerName} — ${rowId}`, value);
+          openJSONModal(`${headers[j].trim()} — Row ${idx + 1}`, value);
         });
-        
         jsonCell.appendChild(preview);
         jsonCell.appendChild(btn);
         td.appendChild(jsonCell);
@@ -1562,12 +1706,8 @@ function renderTable() {
 }
 
 function toggleSort(colIndex) {
-  if (sortColumn === colIndex) {
-    sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-  } else {
-    sortColumn = colIndex;
-    sortDirection = 'asc';
-  }
+  if (sortColumn === colIndex) sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+  else { sortColumn = colIndex; sortDirection = 'asc'; }
   renderTable();
 }
 
@@ -1603,7 +1743,6 @@ $('clearFiltersBtn').addEventListener('click', () => {
   showToast('Filters clear ஆனது', 'info');
 });
 
-// ===================== Init =====================
 updateButtons();
 </script>
 </body>
