@@ -42,9 +42,8 @@
   [data-theme="dark"] body {
     background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #4c1d95 100%);
   }
-  .container { max-width: 1300px; margin: 0 auto; }
+  .container { max-width: 1400px; margin: 0 auto; }
 
-  /* Header */
   .header {
     display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
@@ -70,7 +69,6 @@
   }
   .theme-btn:hover { background: rgba(255,255,255,0.25); transform: scale(1.05); }
 
-  /* Card */
   .card {
     background: var(--card-bg);
     border-radius: 20px;
@@ -100,14 +98,13 @@
   .card-header h2 { font-size: 17px; font-weight: 700; }
   .card-header p { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 
-  /* Inputs */
   .input-group { margin-bottom: 16px; }
   label {
     display: block; font-size: 13px; font-weight: 600;
     color: var(--text); margin-bottom: 8px;
   }
-  input[type="password"], input[type="text"], input[type="search"],
-  input[type="date"], input[type="month"], input[type="number"] {
+  input[type="password"], input[type="search"],
+  input[type="date"], select {
     width: 100%; padding: 12px 16px;
     background: var(--card-bg-2);
     border: 2px solid var(--border);
@@ -115,17 +112,11 @@
     font-family: inherit; color: var(--text);
     transition: all 0.2s;
   }
-  input:focus {
+  input:focus, select:focus {
     outline: none; border-color: var(--primary);
     box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
   }
   select {
-    width: 100%; padding: 12px 16px;
-    background: var(--card-bg-2);
-    border: 2px solid var(--border);
-    border-radius: 10px; font-size: 14px;
-    font-family: inherit; color: var(--text);
-    transition: all 0.2s;
     cursor: pointer;
     appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
@@ -133,12 +124,7 @@
     background-position: right 14px center;
     padding-right: 36px;
   }
-  select:focus {
-    outline: none; border-color: var(--primary);
-    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
-  }
 
-  /* Drag Zone */
   .drop-zone {
     border: 2px dashed var(--border);
     border-radius: 14px; padding: 32px 20px;
@@ -186,7 +172,6 @@
   }
   .file-remove:hover { background: rgba(239, 68, 68, 0.1); }
 
-  /* Buttons */
   .btn {
     padding: 13px 24px; border: none; border-radius: 10px;
     font-size: 14px; font-weight: 600; cursor: pointer;
@@ -202,7 +187,6 @@
   .btn-clear { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3); }
   .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
 
-  /* Status */
   .status {
     padding: 14px 18px; border-radius: 10px;
     font-size: 13px; margin-top: 14px; display: none;
@@ -236,7 +220,6 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* Stats */
   .stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -258,7 +241,6 @@
   .stat-value.text { font-size: 14px; font-family: monospace; }
   .stat-value.filtered { color: var(--primary); }
 
-  /* Filter Panel */
   .filter-panel {
     background: linear-gradient(135deg, rgba(99, 102, 241, 0.05), rgba(118, 75, 162, 0.03));
     border: 2px solid var(--border);
@@ -294,9 +276,7 @@
   .search-box {
     flex: 1; min-width: 200px; position: relative;
   }
-  .search-box input {
-    padding-left: 42px;
-  }
+  .search-box input { padding-left: 42px; }
   .search-icon {
     position: absolute; left: 14px; top: 50%;
     transform: translateY(-50%);
@@ -304,10 +284,9 @@
     font-size: 15px;
   }
 
-  /* Active Filters */
   .active-filters {
     display: flex; flex-wrap: wrap; gap: 8px;
-    margin-bottom: 16px;
+    margin-top: 14px;
   }
   .filter-chip {
     display: inline-flex; align-items: center; gap: 6px;
@@ -331,7 +310,22 @@
   }
   .filter-chip button:hover { background: rgba(255,255,255,0.4); }
 
-  /* Table */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--primary);
+    font-family: monospace;
+    margin-left: 4px;
+  }
+  .badge.json {
+    background: rgba(245, 158, 11, 0.15);
+    color: #d97706;
+  }
+
   .table-wrap {
     overflow: auto; border-radius: 12px;
     border: 1px solid var(--border);
@@ -351,7 +345,6 @@
     letter-spacing: 0.03em;
     cursor: pointer; user-select: none;
     transition: background 0.2s;
-    position: relative;
   }
   th:hover { background: linear-gradient(135deg, var(--primary-dark), #4338ca); }
   th .sort-indicator {
@@ -367,6 +360,7 @@
     max-width: 400px; overflow: hidden;
     text-overflow: ellipsis; white-space: nowrap;
     color: var(--text);
+    vertical-align: top;
   }
   tbody tr { transition: background 0.15s; }
   tbody tr:nth-child(even) { background: var(--card-bg-2); }
@@ -378,17 +372,137 @@
     text-align: center; width: 60px;
   }
 
-  .badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 5px;
+  /* JSON cell */
+  .json-cell {
+    display: flex; align-items: center; gap: 8px;
+    max-width: 100%;
+  }
+  .json-preview {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .json-btn {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+    border: none;
+    padding: 4px 10px;
+    border-radius: 6px;
     font-size: 11px;
     font-weight: 600;
-    background: rgba(99, 102, 241, 0.1);
-    color: var(--primary);
-    font-family: monospace;
-    margin-left: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+    flex-shrink: 0;
   }
+  .json-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3); }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+    animation: fadeIn 0.2s ease;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--card-bg);
+    border-radius: 16px;
+    box-shadow: var(--shadow-lg);
+    max-width: 800px;
+    width: 100%;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    animation: slideUp 0.3s ease-out;
+    border: 1px solid var(--border);
+  }
+  .modal-header {
+    padding: 20px 24px;
+    border-bottom: 2px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  .modal-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .modal-close {
+    background: var(--card-bg-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  .modal-close:hover {
+    background: var(--danger);
+    color: white;
+    border-color: var(--danger);
+  }
+  .modal-body {
+    padding: 20px 24px;
+    overflow: auto;
+    flex: 1;
+  }
+  .modal-body pre {
+    font-family: 'SF Mono', Monaco, Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-break: break-word;
+    background: var(--card-bg-2);
+    padding: 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+  .modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+
+  /* Nested JSON tree */
+  .json-tree {
+    font-family: 'SF Mono', Monaco, Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--text);
+  }
+  .json-tree .key { color: #7c3aed; font-weight: 600; }
+  [data-theme="dark"] .json-tree .key { color: #a78bfa; }
+  .json-tree .str { color: #16a34a; }
+  [data-theme="dark"] .json-tree .str { color: #4ade80; }
+  .json-tree .num { color: #dc2626; }
+  [data-theme="dark"] .json-tree .num { color: #f87171; }
+  .json-tree .bool { color: #0891b2; }
+  [data-theme="dark"] .json-tree .bool { color: #22d3ee; }
+  .json-tree .null { color: #94a3b8; font-style: italic; }
+  .json-tree ul { list-style: none; padding-left: 20px; border-left: 1px dashed var(--border); margin: 4px 0; }
+  .json-tree li { padding: 2px 0; }
 
   .empty-state {
     text-align: center; padding: 60px 20px;
@@ -417,7 +531,6 @@
     border: 1px solid var(--border);
   }
 
-  /* Toast */
   .toast {
     position: fixed; bottom: 24px; right: 24px;
     background: var(--card-bg); color: var(--text);
@@ -425,7 +538,7 @@
     box-shadow: var(--shadow-lg);
     font-size: 14px; font-weight: 500;
     display: flex; align-items: center; gap: 10px;
-    z-index: 1000; transform: translateY(100px);
+    z-index: 3000; transform: translateY(100px);
     opacity: 0;
     transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     border-left: 4px solid var(--success);
@@ -458,19 +571,17 @@
 <body>
 <div class="container">
 
-  <!-- Header -->
   <div class="header">
     <div class="brand">
       <div class="brand-icon">🔐</div>
       <div class="brand-text">
         <h1>SOV Data Viewer</h1>
-        <p>Decrypt • Filter by Date/Month/Year • Search</p>
+        <p>Decrypt • Filter by Date/Month/Year • Search • JSON View</p>
       </div>
     </div>
     <button class="theme-btn" id="themeBtn" title="Toggle dark mode">🌙</button>
   </div>
 
-  <!-- Step 1: Upload -->
   <div class="card">
     <div class="card-header">
       <div class="step-num">1</div>
@@ -489,7 +600,6 @@
     <div id="step1Status" class="status"></div>
   </div>
 
-  <!-- Step 2: Decrypt -->
   <div class="card">
     <div class="card-header">
       <div class="step-num">2</div>
@@ -503,7 +613,7 @@
       <input type="password" id="decKey" placeholder="Server-ல இருக்கிற exact value-ஐ paste பண்ணுங்க">
       <div class="hint">
         <span>ℹ️</span>
-        <span>Environment variable <code>CSV_ENCRYPTION_KEY</code>-ஓட exact value. SHA-256 hash மூலம் 256-bit key derive ஆகும்.</span>
+        <span>Environment variable <code>CSV_ENCRYPTION_KEY</code>-ஓட exact value.</span>
       </div>
     </div>
     <div class="btn-group">
@@ -517,7 +627,6 @@
     <div id="step2Status" class="status"></div>
   </div>
 
-  <!-- Step 3: Output -->
   <div class="card" id="outputSection" style="display:none;">
     <div class="card-header">
       <div class="step-num">3</div>
@@ -527,7 +636,6 @@
       </div>
     </div>
 
-    <!-- Stats -->
     <div class="stats">
       <div class="stat-card">
         <div class="stat-label">Total Rows</div>
@@ -547,7 +655,6 @@
       </div>
     </div>
 
-    <!-- Filter Panel -->
     <div class="filter-panel">
       <div class="filter-title">
         <span>🎯</span> Filters
@@ -559,7 +666,6 @@
           <label>📅 Specific Date</label>
           <input type="date" id="filterDate">
         </div>
-
         <div class="filter-item">
           <label>📆 Month</label>
           <select id="filterMonth">
@@ -578,28 +684,24 @@
             <option value="12">December</option>
           </select>
         </div>
-
         <div class="filter-item">
           <label>📊 Year</label>
           <select id="filterYear">
             <option value="">All Years</option>
           </select>
         </div>
-
         <div class="filter-item">
           <label>🏛️ Financial Year</label>
           <select id="filterFY">
             <option value="">All FY</option>
           </select>
         </div>
-
         <div class="filter-item">
-          <label>📍 Date Range From</label>
+          <label>📍 From</label>
           <input type="date" id="filterFrom">
         </div>
-
         <div class="filter-item">
-          <label>📍 Date Range To</label>
+          <label>📍 To</label>
           <input type="date" id="filterTo">
         </div>
       </div>
@@ -614,11 +716,9 @@
         </button>
       </div>
 
-      <!-- Active filter chips -->
       <div class="active-filters" id="activeFilters"></div>
     </div>
 
-    <!-- Table -->
     <div id="cryptoMeta" style="margin-bottom:12px;font-size:12px;color:var(--text-muted);"></div>
 
     <div class="table-wrap">
@@ -629,7 +729,6 @@
     </div>
   </div>
 
-  <!-- Empty State -->
   <div class="card" id="emptyState">
     <div class="empty-state">
       <div class="icon">📊</div>
@@ -641,19 +740,35 @@
   <div class="footer">🔒 AES-256-GCM • SHA-256 KDF • All processing in browser</div>
 </div>
 
+<!-- Modal for JSON view -->
+<div class="modal-overlay" id="jsonModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">📋 <span id="modalTitle">JSON Data</span></div>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="modalCopyBtn">📋 Copy JSON</button>
+      <button class="btn btn-primary" id="modalCloseBtn">Close</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
 // ===================== State =====================
 let parsedFile = null;
-let allRows = [];          // All decrypted rows [header, ...data]
-let dataRows = [];         // Data rows only (no header)
-let headers = [];          // Header row
-let dateColumnIndex = -1;  // Auto-detected date column
+let headers = [];
+let dataRows = [];
+let dateColumnIndex = -1;
+let jsonColumns = new Set(); // Indices of columns containing JSON
 let decryptTimeMs = 0;
 let fileInfo = null;
 let sortColumn = -1;
 let sortDirection = 'asc';
+let currentModalData = null;
 
 const $ = id => document.getElementById(id);
 
@@ -754,17 +869,14 @@ function parseCSV(text) {
 }
 
 // ===================== Date helpers =====================
-// Accept: YYYY-MM-DD, DD-MM-YYYY, DD/MM/YYYY, YYYY/MM/DD, ISO datetime
 function parseDate(value) {
   if (!value) return null;
   const s = String(value).trim();
   if (!s) return null;
 
-  // YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS
   let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
 
-  // DD-MM-YYYY or DD/MM/YYYY
   m = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
   if (m) {
     const d = +m[1], mo = +m[2], y = +m[3];
@@ -772,11 +884,9 @@ function parseDate(value) {
     return new Date(y, mo - 1, d);
   }
 
-  // YYYY/MM/DD
   m = s.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})/);
   if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
 
-  // DD-MMM-YYYY (e.g. 15-Jan-2024)
   m = s.match(/^(\d{1,2})[-\s]([A-Za-z]{3,})[-\s](\d{4})/);
   if (m) {
     const months = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
@@ -802,7 +912,6 @@ function getFY(d) {
   return `${startYear}-${startYear + 1}`;
 }
 
-// Auto-detect date column: find header matching common names
 function detectDateColumn(headerRow) {
   const dateHeaderPatterns = [
     /^date$/i, /^dt$/i, /^day$/i,
@@ -815,15 +924,159 @@ function detectDateColumn(headerRow) {
     const h = String(headerRow[i]).trim();
     if (dateHeaderPatterns.some(p => p.test(h))) return i;
   }
-  // Fallback: check first data row for date-like value
   return -1;
 }
 
-// Build lookup for each row's date
 function getRowDate(row) {
   if (dateColumnIndex === -1) return null;
   return parseDate(row[dateColumnIndex]);
 }
+
+// ===================== JSON Detection & Formatting =====================
+function looksLikeJSON(value) {
+  if (!value) return false;
+  const s = String(value).trim();
+  if (s.length < 2) return false;
+  if (!((s.startsWith('{') && s.endsWith('}')) || (s.startsWith('[') && s.endsWith(']')))) return false;
+  try {
+    JSON.parse(s);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function detectJSONColumns(headerRow, dataRows) {
+  const jsonCols = new Set();
+  // Sample first 50 rows or all rows (whichever is less)
+  const sample = dataRows.slice(0, Math.min(50, dataRows.length));
+  for (let i = 0; i < headerRow.length; i++) {
+    let jsonCount = 0;
+    let nonEmptyCount = 0;
+    for (const row of sample) {
+      const v = row[i];
+      if (v && String(v).trim()) {
+        nonEmptyCount++;
+        if (looksLikeJSON(v)) jsonCount++;
+      }
+    }
+    // If 80%+ of non-empty values look like JSON, mark as JSON column
+    if (nonEmptyCount > 0 && jsonCount / nonEmptyCount >= 0.8) {
+      jsonCols.add(i);
+    }
+  }
+  return jsonCols;
+}
+
+// Format JSON value into readable text (for search/display)
+function jsonToReadable(value) {
+  if (!value) return '';
+  try {
+    const obj = JSON.parse(value);
+    return extractText(obj);
+  } catch {
+    return String(value);
+  }
+}
+
+function extractText(obj, maxDepth = 5, depth = 0) {
+  if (depth > maxDepth) return '...';
+  if (obj === null || obj === undefined) return '';
+  if (typeof obj === 'string' || typeof obj === 'number' || typeof obj === 'boolean') {
+    return String(obj);
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(x => extractText(x, maxDepth, depth + 1)).filter(Boolean).join(' ');
+  }
+  if (typeof obj === 'object') {
+    return Object.values(obj).map(x => extractText(x, maxDepth, depth + 1)).filter(Boolean).join(' ');
+  }
+  return String(obj);
+}
+
+// Build JSON tree HTML (collapsible)
+function buildJSONTree(obj, keyName = null, level = 0) {
+  const indent = '  '.repeat(level);
+  
+  if (obj === null) return `<span class="null">null</span>`;
+  if (obj === undefined) return `<span class="null">undefined</span>`;
+  
+  if (typeof obj === 'string') {
+    return `<span class="str">"${escapeHtml(obj)}"</span>`;
+  }
+  if (typeof obj === 'number') {
+    return `<span class="num">${obj}</span>`;
+  }
+  if (typeof obj === 'boolean') {
+    return `<span class="bool">${obj}</span>`;
+  }
+  
+  if (Array.isArray(obj)) {
+    if (obj.length === 0) return `<span style="color:var(--text-muted)">[]</span>`;
+    const items = obj.map((item, i) => 
+      `<li><span class="key">[${i}]</span>: ${buildJSONTree(item, null, level + 1)}</li>`
+    ).join('');
+    return `<ul>${items}</ul>`;
+  }
+  
+  if (typeof obj === 'object') {
+    const keys = Object.keys(obj);
+    if (keys.length === 0) return `<span style="color:var(--text-muted)">{}</span>`;
+    const items = keys.map(k => 
+      `<li><span class="key">"${escapeHtml(k)}"</span>: ${buildJSONTree(obj[k], k, level + 1)}</li>`
+    ).join('');
+    return `<ul>${items}</ul>`;
+  }
+  
+  return escapeHtml(String(obj));
+}
+
+// ===================== Modal =====================
+function openJSONModal(title, jsonText) {
+  $('modalTitle').textContent = title;
+  const body = $('modalBody');
+  
+  try {
+    const obj = JSON.parse(jsonText);
+    body.innerHTML = `<div class="json-tree">${buildJSONTree(obj)}</div>`;
+  } catch {
+    body.innerHTML = `<pre>${escapeHtml(jsonText)}</pre>`;
+  }
+  
+  currentModalData = jsonText;
+  $('jsonModal').classList.add('show');
+}
+
+function closeModal() {
+  $('jsonModal').classList.remove('show');
+  currentModalData = null;
+}
+
+$('modalClose').addEventListener('click', closeModal);
+$('modalCloseBtn').addEventListener('click', closeModal);
+$('jsonModal').addEventListener('click', (e) => {
+  if (e.target === $('jsonModal')) closeModal();
+});
+
+$('modalCopyBtn').addEventListener('click', async () => {
+  if (!currentModalData) return;
+  try {
+    // Copy pretty formatted
+    let toCopy = currentModalData;
+    try {
+      toCopy = JSON.stringify(JSON.parse(currentModalData), null, 2);
+    } catch {}
+    await navigator.clipboard.writeText(toCopy);
+    showToast('📋 JSON copied!');
+  } catch (err) {
+    showToast('Copy fail: ' + err.message, 'error');
+  }
+});
+
+// ESC to close modal
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && $('jsonModal').classList.contains('show')) closeModal();
+});
 
 // ===================== Drag & Drop =====================
 const dropZone = $('dropZone');
@@ -917,16 +1170,15 @@ function resetFile() {
 }
 
 function resetData() {
-  allRows = [];
-  dataRows = [];
   headers = [];
+  dataRows = [];
   dateColumnIndex = -1;
+  jsonColumns = new Set();
   decryptTimeMs = 0;
   sortColumn = -1;
   sortDirection = 'asc';
   $('outputSection').style.display = 'none';
   $('emptyState').style.display = 'block';
-  // Reset filters
   $('filterDate').value = '';
   $('filterMonth').value = '';
   $('filterYear').value = '';
@@ -995,19 +1247,22 @@ $('decryptBtn').addEventListener('click', async () => {
     if (rows.length > 0 && rows[0].length > 1) {
       headers = rows[0];
       dataRows = rows.slice(1);
-      allRows = rows;
       dateColumnIndex = detectDateColumn(headers);
+      jsonColumns = detectJSONColumns(headers, dataRows);
 
       setupFilters();
       renderTable();
       updateStats();
 
       const dateInfo = dateColumnIndex >= 0
-        ? ` | 📅 Date column: "${headers[dateColumnIndex]}"`
+        ? ` | 📅 Date: "${headers[dateColumnIndex]}"`
         : ' | ⚠️ Date column detect ஆகல';
+      const jsonInfo = jsonColumns.size > 0
+        ? ` | 📋 ${jsonColumns.size} JSON column(s)`
+        : '';
 
       showStatus(status,
-        `✅ Decrypt ஆனது — ${dataRows.length} rows, ${headers.length} columns (${decryptTimeMs.toFixed(2)}ms)${dateInfo}`,
+        `✅ Decrypt ஆனது — ${dataRows.length} rows, ${headers.length} columns (${decryptTimeMs.toFixed(2)}ms)${dateInfo}${jsonInfo}`,
         'success');
       showToast(`✅ ${dataRows.length} rows decrypt ஆனது!`);
 
@@ -1035,7 +1290,6 @@ $('decryptBtn').addEventListener('click', async () => {
 
 // ===================== Setup Filters =====================
 function setupFilters() {
-  // Extract years from date column
   const years = new Set();
   const fys = new Set();
 
@@ -1047,7 +1301,6 @@ function setupFilters() {
     }
   });
 
-  // Populate year dropdown
   const yearSel = $('filterYear');
   yearSel.innerHTML = '<option value="">All Years</option>';
   [...years].sort((a, b) => b - a).forEach(y => {
@@ -1057,7 +1310,6 @@ function setupFilters() {
     yearSel.appendChild(opt);
   });
 
-  // Populate FY dropdown
   const fySel = $('filterFY');
   fySel.innerHTML = '<option value="">All FY</option>';
   [...fys].sort().reverse().forEach(fy => {
@@ -1068,7 +1320,7 @@ function setupFilters() {
   });
 }
 
-// ===================== Filter & Search Logic =====================
+// ===================== Filter Logic =====================
 function getFilteredRows() {
   const dateFilter = $('filterDate').value;
   const monthFilter = $('filterMonth').value;
@@ -1080,16 +1332,13 @@ function getFilteredRows() {
 
   let filtered = dataRows;
 
-  // Date filter (specific)
   if (dateFilter && dateColumnIndex >= 0) {
-    const target = dateFilter; // YYYY-MM-DD
     filtered = filtered.filter(row => {
       const d = getRowDate(row);
-      return d && toDateKey(d) === target;
+      return d && toDateKey(d) === dateFilter;
     });
   }
 
-  // Month filter
   if (monthFilter && dateColumnIndex >= 0) {
     filtered = filtered.filter(row => {
       const d = getRowDate(row);
@@ -1098,7 +1347,6 @@ function getFilteredRows() {
     });
   }
 
-  // Year filter
   if (yearFilter && dateColumnIndex >= 0) {
     filtered = filtered.filter(row => {
       const d = getRowDate(row);
@@ -1106,7 +1354,6 @@ function getFilteredRows() {
     });
   }
 
-  // FY filter
   if (fyFilter && dateColumnIndex >= 0) {
     filtered = filtered.filter(row => {
       const d = getRowDate(row);
@@ -1114,7 +1361,6 @@ function getFilteredRows() {
     });
   }
 
-  // Date range
   if (fromFilter && dateColumnIndex >= 0) {
     const fromDate = new Date(fromFilter + 'T00:00:00');
     filtered = filtered.filter(row => {
@@ -1130,29 +1376,35 @@ function getFilteredRows() {
     });
   }
 
-  // Global search (any column)
+  // Search - includes JSON readable text
   if (searchQuery) {
-    filtered = filtered.filter(row =>
-      row.some(cell => String(cell).toLowerCase().includes(searchQuery))
-    );
+    filtered = filtered.filter(row => {
+      for (let i = 0; i < row.length; i++) {
+        const cell = row[i];
+        if (!cell) continue;
+        if (String(cell).toLowerCase().includes(searchQuery)) return true;
+        // If JSON column, also search inside parsed content
+        if (jsonColumns.has(i) && looksLikeJSON(cell)) {
+          const readable = jsonToReadable(cell).toLowerCase();
+          if (readable.includes(searchQuery)) return true;
+        }
+      }
+      return false;
+    });
   }
 
-  // Sort
   if (sortColumn >= 0) {
     filtered = [...filtered].sort((a, b) => {
       const av = a[sortColumn] ?? '';
       const bv = b[sortColumn] ?? '';
-      // Try numeric compare
       const an = parseFloat(av), bn = parseFloat(bv);
-      if (!isNaN(an) && !isNaN(bn)) {
+      if (!isNaN(an) && !isNaN(bn) && String(av).trim() !== '' && String(bv).trim() !== '') {
         return sortDirection === 'asc' ? an - bn : bn - an;
       }
-      // Try date compare
       const ad = parseDate(av), bd = parseDate(bv);
       if (ad && bd) {
         return sortDirection === 'asc' ? ad - bd : bd - ad;
       }
-      // String compare
       const cmp = String(av).localeCompare(String(bv), undefined, { numeric: true });
       return sortDirection === 'asc' ? cmp : -cmp;
     });
@@ -1163,20 +1415,18 @@ function getFilteredRows() {
 
 function updateActiveFiltersUI() {
   const chips = [];
-  const addChip = (label, id, type) => {
-    chips.push({ label, id, type });
-  };
+  const addChip = (label, id) => chips.push({ label, id });
 
-  if ($('filterDate').value) addChip(`📅 ${$('filterDate').value}`, 'filterDate', 'date');
+  if ($('filterDate').value) addChip(`📅 ${$('filterDate').value}`, 'filterDate');
   if ($('filterMonth').value) {
     const monthName = $('filterMonth').selectedOptions[0].textContent;
-    addChip(`📆 ${monthName}`, 'filterMonth', 'select');
+    addChip(`📆 ${monthName}`, 'filterMonth');
   }
-  if ($('filterYear').value) addChip(`📊 ${$('filterYear').value}`, 'filterYear', 'select');
-  if ($('filterFY').value) addChip(`🏛️ FY ${$('filterFY').value}`, 'filterFY', 'select');
-  if ($('filterFrom').value) addChip(`From: ${$('filterFrom').value}`, 'filterFrom', 'date');
-  if ($('filterTo').value) addChip(`To: ${$('filterTo').value}`, 'filterTo', 'date');
-  if ($('searchInput').value.trim()) addChip(`🔍 "${$('searchInput').value.trim()}"`, 'searchInput', 'search');
+  if ($('filterYear').value) addChip(`📊 ${$('filterYear').value}`, 'filterYear');
+  if ($('filterFY').value) addChip(`🏛️ FY ${$('filterFY').value}`, 'filterFY');
+  if ($('filterFrom').value) addChip(`From: ${$('filterFrom').value}`, 'filterFrom');
+  if ($('filterTo').value) addChip(`To: ${$('filterTo').value}`, 'filterTo');
+  if ($('searchInput').value.trim()) addChip(`🔍 "${$('searchInput').value.trim()}"`, 'searchInput');
 
   const wrap = $('activeFilters');
   wrap.innerHTML = '';
@@ -1195,7 +1445,6 @@ function updateActiveFiltersUI() {
     badge.style.display = 'none';
   }
 
-  // Wire up remove buttons
   wrap.querySelectorAll('button[data-clear]').forEach(btn => {
     btn.addEventListener('click', () => {
       $(btn.dataset.clear).value = '';
@@ -1204,7 +1453,6 @@ function updateActiveFiltersUI() {
   });
 }
 
-// ===================== Apply filters =====================
 function applyFilters() {
   if (!headers.length) return;
   renderTable();
@@ -1220,7 +1468,6 @@ function renderTable() {
   thead.innerHTML = '';
   tbody.innerHTML = '';
 
-  // Header with sort
   const hr = document.createElement('tr');
   const numTh = document.createElement('th');
   numTh.textContent = '#';
@@ -1230,6 +1477,13 @@ function renderTable() {
   headers.forEach((h, i) => {
     const th = document.createElement('th');
     th.textContent = h.trim() || '—';
+    if (jsonColumns.has(i)) {
+      const b = document.createElement('span');
+      b.className = 'badge json';
+      b.textContent = 'JSON';
+      b.style.marginLeft = '6px';
+      th.appendChild(b);
+    }
     if (i === sortColumn) {
       th.classList.add('sorted');
       const ind = document.createElement('span');
@@ -1243,12 +1497,14 @@ function renderTable() {
       th.appendChild(ind);
     }
     th.title = 'Click to sort';
-    th.addEventListener('click', () => toggleSort(i));
+    th.addEventListener('click', (e) => {
+      if (e.target.closest('button')) return;
+      toggleSort(i);
+    });
     hr.appendChild(th);
   });
   thead.appendChild(hr);
 
-  // If no results
   if (filtered.length === 0) {
     const tr = document.createElement('tr');
     const td = document.createElement('td');
@@ -1259,7 +1515,6 @@ function renderTable() {
     return;
   }
 
-  // Body
   const n = headers.length;
   filtered.forEach((row, idx) => {
     const tr = document.createElement('tr');
@@ -1270,8 +1525,36 @@ function renderTable() {
 
     for (let j = 0; j < n; j++) {
       const td = document.createElement('td');
-      td.textContent = row[j] !== undefined ? row[j] : '';
-      td.title = td.textContent;
+      const value = row[j] !== undefined ? row[j] : '';
+
+      if (jsonColumns.has(j) && looksLikeJSON(value)) {
+        // Render JSON preview with button
+        const jsonCell = document.createElement('div');
+        jsonCell.className = 'json-cell';
+        
+        const preview = document.createElement('span');
+        preview.className = 'json-preview';
+        const readable = jsonToReadable(value);
+        preview.textContent = readable.slice(0, 80) + (readable.length > 80 ? '...' : '');
+        preview.title = value;
+        
+        const btn = document.createElement('button');
+        btn.className = 'json-btn';
+        btn.textContent = '🔍 View';
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const headerName = headers[j].trim();
+          const rowId = row[0] || `Row ${idx + 1}`;
+          openJSONModal(`${headerName} — ${rowId}`, value);
+        });
+        
+        jsonCell.appendChild(preview);
+        jsonCell.appendChild(btn);
+        td.appendChild(jsonCell);
+      } else {
+        td.textContent = value;
+        td.title = value;
+      }
       tr.appendChild(td);
     }
     tbody.appendChild(tr);
@@ -1296,7 +1579,7 @@ function updateStats() {
   $('statTime').textContent = decryptTimeMs.toFixed(2) + ' ms';
 }
 
-// ===================== Wire up filter events =====================
+// ===================== Wire up filters =====================
 ['filterDate', 'filterMonth', 'filterYear', 'filterFY', 'filterFrom', 'filterTo'].forEach(id => {
   $(id).addEventListener('change', applyFilters);
   $(id).addEventListener('input', applyFilters);
